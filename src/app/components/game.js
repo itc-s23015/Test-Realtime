@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import socket from "../socket";
+import StockControls from "@/app/components/StockControls";
 
 const Game = () => {
     const [roomNumber, setRoomNumber] = useState(null);
@@ -345,96 +346,8 @@ const Game = () => {
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                     padding: '24px'
                 }}>
-                    <h2 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 'bold' }}>
-                        株価を変動させる
-                    </h2>
-                    <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap'
-                    }}>
-                        <button
-                            onClick={() => handleButtonClick(500)}
-                            style={{
-                                padding: '16px 32px',
-                                fontSize: '18px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
-                        >
-                            +500円 📈
-                        </button>
-                        <button
-                            onClick={() => handleButtonClick(1000)}
-                            style={{
-                                padding: '16px 32px',
-                                fontSize: '18px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                backgroundColor: '#3b82f6',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#2563eb'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#3b82f6'}
-                        >
-                            +1000円 🚀
-                        </button>
-                        <button
-                            onClick={() => handleButtonClick(-500)}
-                            style={{
-                                padding: '16px 32px',
-                                fontSize: '18px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                backgroundColor: '#f59e0b',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#d97706'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#f59e0b'}
-                        >
-                            -500円 📉
-                        </button>
-                        <button
-                            onClick={() => handleButtonClick(-1000)}
-                            style={{
-                                padding: '16px 32px',
-                                fontSize: '18px',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
-                        >
-                            -1000円 💥
-                        </button>
-                    </div>
-                    <p style={{
-                        marginTop: '16px',
-                        textAlign: 'center',
-                        color: '#6b7280',
-                        fontSize: '14px'
-                    }}>
-                        ボタンをクリックすると、両方の画面で株価が変動します
-                    </p>
+
+                 <StockControls onChange={handleButtonClick}/>
                 </div>
             </div>
         </div>
