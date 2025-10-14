@@ -320,6 +320,38 @@ io.on('connection', (socket) => {
         console.log(`📤 送信完了`);
     });
 
+    // カードの処理(相手の株を減らす)
+    socket.on('useCard', (data) => {
+        const { roomNumber, effectAmount } = data;
+        console.log(`🃏 部屋 ${roomNumber} でカード効果を適用: 相手の株を ${effectAmount} 減少`);
+
+        const userIds = Array.from(rooms[roomNumber].keys());
+
+        const opponentId = userIds.find(id => id !== socket.id);
+        if (!opponentId) {
+            console.error(`❌ 対戦相手が見つかりません`);
+            return;
+        }
+
+
+        // 相手の株を減らす
+        if(playerHolding[opponentId] !== undefined) {
+            const beforeHolding = playerHolding[opponentId];
+            playerHolding[opponentId] = Math.max(0, playerHolding[opponentId] + effectAmount);
+            const afterHolding = playerHolding[opponentId];
+
+            console.log(`📉 ${opponentId} の保有株数: ${beforeHolding} → ${afterHolding}`);
+
+            // 対戦相手に更新された保有株数を送信
+            io.to(opponentId).emit('holdingUpdated', { holding: playerHolding[opponentId], changeAmount: effectAmount, message:`相手がカードを使用しました.保有株が ${Math.abs(effectAmount)} 株減少` });
+
+            socket.emit('cardUsed', { success: true, message: `カードを使用しました.`, opponentHolding: playerHolding[opponentId] 
+            });
+        } else {
+            console.error(`❌ ${opponentId} の保有株数データが存在しません`);
+        }
+    });
+
     // ICE candidate の処理
     socket.on('ice-candidate', (data) => {
         console.log('ice-candidate_log');
