@@ -14,6 +14,9 @@ const io = new Server(server, {
 let rooms = {}; // ルーム番号ごとの接続情報
 let roomStockData = {}; // 各部屋の株価データ
 let roomTimers = {}; // 各部屋の自動変動タイマー
+let playerMoney = {}; // プレイヤーの持ち金 (socket.id: 金額)
+
+const INITIAL_MONEY = 100000; // 初期所持金: 10万円
 
 // 株価データを生成する関数
 function generateStockData() {
@@ -46,11 +49,11 @@ function autoUpdateStockPrice(roomNumber) {
 
     const stockData = roomStockData[roomNumber];
     const lastPrice = stockData[stockData.length - 1].price;
-
+    
     // ランダムな変動額（-300〜+300）
     const changeAmount = Math.floor((Math.random() - 0.5) * 600);
     const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
-
+    
     console.log(`🤖 自動変動 [部屋 ${roomNumber}]: ¥${lastPrice} → ¥${newPrice} (${changeAmount > 0 ? '+' : ''}${changeAmount})`);
 
     // 最後のデータを更新
@@ -74,7 +77,7 @@ function autoUpdateStockPrice(roomNumber) {
     }
 
     // 部屋の全員に更新を送信
-    io.to(roomNumber).emit('stockDataUpdated', {
+    io.to(roomNumber).emit('stockDataUpdated', { 
         stockData: roomStockData[roomNumber],
         changeAmount: changeAmount,
         isAuto: true
@@ -106,6 +109,10 @@ function stopAutoUpdate(roomNumber) {
 
 io.on('connection', (socket) => {
     console.log('新しいユーザーが接続しました:', socket.id);
+    
+    // 初期所持金を設定
+    playerMoney[socket.id] = INITIAL_MONEY;
+    console.log(`💰 ${socket.id} の初期所持金: ¥${INITIAL_MONEY.toLocaleString()}`);
 
     // ルーム作成
     socket.on('createRoom', (roomNumber, callback) => {
@@ -200,7 +207,7 @@ io.on('connection', (socket) => {
         // 部屋のユーザー数が2人で、両方とも ready ならマッチング開始
         if (rooms[roomNumber].size === 2) {
             const allReady = Array.from(rooms[roomNumber].values()).every(status => status === 'ready');
-
+            
             if (allReady) {
                 console.log(`部屋 ${roomNumber} で対戦相手が見つかりました！`);
 
@@ -224,16 +231,27 @@ io.on('connection', (socket) => {
     socket.on('joinGameRoom', (roomNumber) => {
         console.log(`ユーザー ${socket.id} がゲームルーム ${roomNumber} に参加`);
         socket.join(roomNumber);
-
+        
         // 株価データが存在しない場合は生成
         if (!roomStockData[roomNumber]) {
             console.log(`部屋 ${roomNumber} の株価データが存在しないため、新規生成します`);
             roomStockData[roomNumber] = generateStockData();
         }
-
-        // 現在の株価データを送信
-        console.log(`部屋 ${roomNumber} の株価データを送信: ${roomStockData[roomNumber].length}件`);
-        socket.emit('initialStockData', { stockData: roomStockData[roomNumber] });
+        
+        // プレイヤーの所持金を確認（なければ初期値を設定）
+        if (!playerMoney[socket.id]) {
+            playerMoney[socket.id] = INITIAL_MONEY;
+            console.log(`💰 ${socket.id} の所持金を初期化: ¥${INITIAL_MONEY.toLocaleString()}`);
+        }
+        
+        const currentMoney = playerMoney[socket.id];
+        console.log(`📤 送信データ: 株価=${roomStockData[roomNumber].length}件, 所持金=¥${currentMoney.toLocaleString()}`);
+        
+        // 現在の株価データと所持金を送信
+        socket.emit('initialStockData', { 
+            stockData: roomStockData[roomNumber],
+            money: currentMoney
+        });
     });
 
     // 株価変動の処理
@@ -249,10 +267,10 @@ io.on('connection', (socket) => {
 
         const stockData = roomStockData[roomNumber];
         console.log(`現在のデータ数: ${stockData.length}件`);
-
+        
         const lastPrice = stockData[stockData.length - 1].price;
         console.log(`変動前の価格: ¥${lastPrice}`);
-
+        
         const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
         console.log(`変動後の価格: ¥${newPrice}`);
 
@@ -279,18 +297,18 @@ io.on('connection', (socket) => {
         console.log(`✅ 株価データ更新完了。部屋 ${roomNumber} の全員に送信します`);
 
         // 同じ部屋の全員（送信者を含む）に更新された株価データを送信
-        io.to(roomNumber).emit('stockDataUpdated', {
+        io.to(roomNumber).emit('stockDataUpdated', { 
             stockData: roomStockData[roomNumber],
-            changeAmount: changeAmount
+            changeAmount: changeAmount 
         });
-
+        
         console.log(`📤 送信完了`);
     });
 
     // ICE candidate の処理
     socket.on('ice-candidate', (data) => {
         console.log('ice-candidate_log');
-
+        
         // 同じ部屋の他のユーザーに送信
         for (const roomNumber in rooms) {
             if (rooms[roomNumber].has(socket.id)) {
@@ -307,6 +325,9 @@ io.on('connection', (socket) => {
     // ユーザーが切断された場合の処理
     socket.on('disconnect', () => {
         console.log(`ユーザー ${socket.id} が切断されました`);
+
+        // 所持金データを削除
+        delete playerMoney[socket.id];
 
         for (const roomNumber in rooms) {
             if (rooms[roomNumber].has(socket.id)) {
