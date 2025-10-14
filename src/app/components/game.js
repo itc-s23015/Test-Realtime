@@ -12,6 +12,7 @@ const Game = () => {
     const [error, setError] = useState("");
     const [stockData, setStockData] = useState([]);
     const [money, setMoney] = useState(null);
+    const [holding, setHolding] = useState(null);
     const router = useRouter();
 
     // Socket.io接続設定
@@ -44,6 +45,7 @@ const Game = () => {
             console.log("受信したデータ:", data);
             console.log("株価データ:", data.stockData?.length, "件");
             console.log("所持金:", data.money);
+            console.log("保有株数:", data.holding);
             console.log("所持金の型:", typeof data.money);
             
             if (data.stockData) {
@@ -54,6 +56,13 @@ const Game = () => {
                 console.log("✅ 所持金を設定:", data.money);
             } else {
                 console.error("❌ 所持金がundefinedまたはnull");
+            }
+
+            if (data.holding !== undefined && data.holding !== null) {
+                setHolding(data.holding);
+                console.log("✅ 保有株数を設定:", data.holding);
+            } else {
+                console.error("❌ 保有株数がundefinedまたはnull");
             }
         });
 
@@ -138,8 +147,8 @@ const Game = () => {
                 )}
 
                 {/* プレイヤー情報 */}
-                {roomNumber && money !== null && (
-                    <PlayerInfo money={money} roomNumber={roomNumber} />
+                {roomNumber && money !== null && holding !== null &&(
+                    <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
                 )}
 
                 {/* 株価チャート */}

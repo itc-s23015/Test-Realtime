@@ -1,0 +1,56 @@
+.container {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.topSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.roomNumber {
+  font-size: 24px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.moneyBox {
+  text-align: right;
+}
+
+.money {
+  font-size: 32px;
+  font-weight: bold;
+  color: #10b981;
+}
+
+.autoSection {
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f0fdf4;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon {
+  font-size: 20px;
+}
+
+.autoText {
+  font-size: 14px;
+  color: #059669;
+}

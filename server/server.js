@@ -15,8 +15,10 @@ let rooms = {}; // ルーム番号ごとの接続情報
 let roomStockData = {}; // 各部屋の株価データ
 let roomTimers = {}; // 各部屋の自動変動タイマー
 let playerMoney = {}; // プレイヤーの持ち金 (socket.id: 金額)
+let playerHolding = {}; // プレイヤーの保有株数 (socket.id: 株数)
 
 const INITIAL_MONEY = 100000; // 初期所持金: 10万円
+const INITIAL_HOLDING = 10; // 初期保有株数: 0株
 
 // 株価データを生成する関数
 function generateStockData() {
@@ -113,6 +115,10 @@ io.on('connection', (socket) => {
     // 初期所持金を設定
     playerMoney[socket.id] = INITIAL_MONEY;
     console.log(`💰 ${socket.id} の初期所持金: ¥${INITIAL_MONEY.toLocaleString()}`);
+
+    // 初期保有株数を設定
+    playerHolding[socket.id] = INITIAL_HOLDING;
+    console.log(`📈 ${socket.id} の初期保有株数: ${INITIAL_HOLDING.toLocaleString()} 株`);
 
     // ルーム作成
     socket.on('createRoom', (roomNumber, callback) => {
@@ -243,14 +249,23 @@ io.on('connection', (socket) => {
             playerMoney[socket.id] = INITIAL_MONEY;
             console.log(`💰 ${socket.id} の所持金を初期化: ¥${INITIAL_MONEY.toLocaleString()}`);
         }
+
+        // プレイヤーの保有株数を確認（なければ初期値を設定）
+        if (!playerHolding[socket.id]) {
+            playerHolding[socket.id] = INITIAL_HOLDING;
+            console.log(`📈 ${socket.id} の保有株数を初期化: ${INITIAL_HOLDING.toLocaleString()} 株`);
+        }
         
         const currentMoney = playerMoney[socket.id];
-        console.log(`📤 送信データ: 株価=${roomStockData[roomNumber].length}件, 所持金=¥${currentMoney.toLocaleString()}`);
+        const currentHolding = playerHolding[socket.id];
+        console.log(`📤 送信データ: 株価=${roomStockData[roomNumber].length}件, 所持金=¥${currentMoney.toLocaleString()}, 株=${currentHolding.toLocaleString()}`);
+
         
         // 現在の株価データと所持金を送信
         socket.emit('initialStockData', { 
             stockData: roomStockData[roomNumber],
-            money: currentMoney
+            money: currentMoney,
+            holding: currentHolding
         });
     });
 
@@ -328,6 +343,9 @@ io.on('connection', (socket) => {
 
         // 所持金データを削除
         delete playerMoney[socket.id];
+
+        // 保有株数データを削除
+        delete playerHolding[socket.id];
 
         for (const roomNumber in rooms) {
             if (rooms[roomNumber].has(socket.id)) {
