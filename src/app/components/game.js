@@ -6,6 +6,7 @@ import socket from "../socket";
 import StockChart from "../components/StockChart";
 import PlayerInfo from "../components/PlayerInfo";
 import ControlButtons from "../components/ControlButtons";
+import CardList from "../components/card";
 
 const Game = () => {
     const [roomNumber, setRoomNumber] = useState(null);
@@ -47,6 +48,7 @@ const Game = () => {
             console.log("所持金:", data.money);
             console.log("保有株数:", data.holding);
             console.log("所持金の型:", typeof data.money);
+            console.log("保有株数の型:", typeof data.holding);
             
             if (data.stockData) {
                 setStockData(data.stockData);
@@ -92,9 +94,30 @@ const Game = () => {
             socket.off("opponentDisconnected");
             socket.off("connect_error");
         };
+
+        // 保有株数更新を受信
+        socket.on('hodlingsUpdated', (data) => {
+            console.log("✅ 保有株数更新を受信:", data);
+            setHolding(data.holding);
+
+            if (data.message) {
+                setError(data.message);
+                setTimeout(() => setError(""), 3000);
+            }
+        });
+
+        // カード使用通知を受信
+        socket.on('cardUsed', (data) => {
+        });
+
+        return () => {
+            socket.off('hodlingsUpdated');
+            socket.off('cardUsed'); 
+        }
+
     }, [router]);
 
-    // ボタンクリック処理
+    // ボタンクリック処理(test)
     const handleButtonClick = (changeAmount) => {
         console.log("🔘 ボタンクリック:", changeAmount);
         
@@ -107,6 +130,24 @@ const Game = () => {
             
             socket.emit("changeStockPrice", payload);
             console.log(`✅ リクエスト送信完了`);
+        } else {
+            console.error("❌ 送信失敗");
+            setError("接続が確立されていません");
+        }
+    };
+
+    // カードの効果(test)
+    const handleCardEffect = (effectAmount) => {
+        console.log("🃏 カード効果発動:", effectAmount);
+        // ここにカード効果の処理を追加
+        if (socket.connected && roomNumber) {
+            const payload = {
+                roomNumber: roomNumber,
+                effectAmount: effectAmount
+            };
+            console.log("📤 useCard送信:", payload)
+            socket.emit("useCard", payload);
+            console.log("✅ リクエスト送信完了");
         } else {
             console.error("❌ 送信失敗");
             setError("接続が確立されていません");
@@ -158,6 +199,9 @@ const Game = () => {
 
                 {/* コントロールボタン */}
                 <ControlButtons onButtonClick={handleButtonClick} />
+
+                {/* カードコンポーネント */}
+                <CardList onButtonClick={handleCardEffect} />
             </div>
         </div>
     );
