@@ -6,7 +6,7 @@ import socket from "../socket";
 import StockChart from "../components/StockChart";
 import PlayerInfo from "../components/PlayerInfo";
 import ControlButtons from "../components/ControlButtons";
-import CardList from "../components/card";
+import CardList from "./card";
 
 const Game = () => {
     const [roomNumber, setRoomNumber] = useState(null);
@@ -14,6 +14,8 @@ const Game = () => {
     const [stockData, setStockData] = useState([]);
     const [money, setMoney] = useState(null);
     const [holding, setHolding] = useState(null);
+    const [allPlayers, setAllPlayers] = useState({}); // 全プレイヤーの情報
+    const [selectedTarget, setSelectedTarget] = useState(null); // 選択されたターゲット
     const router = useRouter();
 
     // Socket.io接続設定
@@ -47,8 +49,6 @@ const Game = () => {
             console.log("株価データ:", data.stockData?.length, "件");
             console.log("所持金:", data.money);
             console.log("保有株数:", data.holding);
-            console.log("所持金の型:", typeof data.money);
-            console.log("保有株数の型:", typeof data.holding);
             
             if (data.stockData) {
                 setStockData(data.stockData);
@@ -78,6 +78,41 @@ const Game = () => {
             setStockData([...data.stockData]);
         });
 
+        // 保有株数更新を受信
+        socket.on('holdingsUpdated', (data) => {
+            console.log("✅ 保有株数更新を受信:", data);
+            setHolding(data.holding);
+
+            if (data.message) {
+                setError(data.message);
+                setTimeout(() => setError(""), 3000);
+            }
+        });
+
+        // 全プレイヤーの情報更新
+        socket.on('allPlayersUpdate', (data) => {
+            console.log("✅ 全プレイヤー情報更新:", data);
+            setAllPlayers(data.holdings);
+        });
+
+        // 攻撃成功
+        socket.on('attackSuccess', (data) => {
+            console.log("✅ 攻撃成功:", data);
+            if (data.message) {
+                setError(`✅ ${data.message}`);
+                setTimeout(() => setError(""), 3000);
+            }
+        });
+
+        // 攻撃失敗
+        socket.on('attackFailed', (data) => {
+            console.log("❌ 攻撃失敗:", data);
+            if (data.message) {
+                setError(`❌ ${data.message}`);
+                setTimeout(() => setError(""), 3000);
+            }
+        });
+
         socket.on("opponentDisconnected", () => {
             setError("対戦相手が切断しました");
         });
@@ -91,33 +126,16 @@ const Game = () => {
             console.log("クリーンアップ: イベントリスナー削除");
             socket.off("initialStockData");
             socket.off("stockDataUpdated");
+            socket.off("holdingsUpdated");
+            socket.off("allPlayersUpdate");
+            socket.off("attackSuccess");
+            socket.off("attackFailed");
             socket.off("opponentDisconnected");
             socket.off("connect_error");
         };
-
-        // 保有株数更新を受信
-        socket.on('hodlingsUpdated', (data) => {
-            console.log("✅ 保有株数更新を受信:", data);
-            setHolding(data.holding);
-
-            if (data.message) {
-                setError(data.message);
-                setTimeout(() => setError(""), 3000);
-            }
-        });
-
-        // カード使用通知を受信
-        socket.on('cardUsed', (data) => {
-        });
-
-        return () => {
-            socket.off('hodlingsUpdated');
-            socket.off('cardUsed'); 
-        }
-
     }, [router]);
 
-    // ボタンクリック処理(test)
+    // 株価変動ボタンクリック処理
     const handleButtonClick = (changeAmount) => {
         console.log("🔘 ボタンクリック:", changeAmount);
         
@@ -136,23 +154,43 @@ const Game = () => {
         }
     };
 
-    // カードの効果(test)
-    const handleCardEffect = (effectAmount) => {
-        console.log("🃏 カード効果発動:", effectAmount);
-        // ここにカード効果の処理を追加
+    // 攻撃ボタンの処理
+    const handleAttack = (effectAmount) => {
+        console.log("⚔️ 攻撃ボタン:", effectAmount, "ターゲット:", selectedTarget);
+        
+        // ターゲット選択必須（2人以上の場合）
+        const otherPlayers = Object.keys(allPlayers).filter(id => id !== socket.id);
+        if (otherPlayers.length >= 1 && !selectedTarget) {
+            setError(`❌ ターゲットを選択してください`);
+            setTimeout(() => setError(""), 3000);
+            return;
+        }
+        
         if (socket.connected && roomNumber) {
             const payload = {
                 roomNumber: roomNumber,
-                effectAmount: effectAmount
+                effectAmount: effectAmount,
+                targetId: selectedTarget // ターゲットIDを送信
             };
-            console.log("📤 useCard送信:", payload)
-            socket.emit("useCard", payload);
+            console.log("📤 attackPlayer送信:", payload);
+            socket.emit("attackPlayer", payload);
             console.log("✅ リクエスト送信完了");
         } else {
             console.error("❌ 送信失敗");
             setError("接続が確立されていません");
         }
     };
+
+    // ターゲット選択
+    const handleTargetSelect = (targetId) => {
+        setSelectedTarget(targetId);
+        console.log("🎯 ターゲット選択:", targetId);
+    };
+
+    // 他のプレイヤーのリスト取得
+    const otherPlayers = Object.keys(allPlayers)
+        .filter(id => id !== socket.id)
+        .map(id => ({ id, holding: allPlayers[id] }));
 
     return (
         <div style={{ 
@@ -174,22 +212,73 @@ const Game = () => {
 
                 {error && (
                     <div style={{
-                        color: '#dc2626',
+                        color: error.startsWith('✅') ? '#16a34a' : '#dc2626',
                         marginBottom: '20px',
                         padding: '16px',
-                        backgroundColor: '#fee2e2',
+                        backgroundColor: error.startsWith('✅') ? '#dcfce7' : '#fee2e2',
                         borderRadius: '12px',
                         textAlign: 'center',
                         fontWeight: 'bold',
-                        border: '2px solid #dc2626'
+                        border: `2px solid ${error.startsWith('✅') ? '#16a34a' : '#dc2626'}`
                     }}>
-                        ⚠️ {error}
+                        {error.startsWith('✅') ? '' : '⚠️ '}{error}
                     </div>
                 )}
 
                 {/* プレイヤー情報 */}
-                {roomNumber && money !== null && holding !== null &&(
+                {roomNumber && money !== null && holding !== null && (
                     <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
+                )}
+
+                {/* 他のプレイヤー情報（ターゲット選択） */}
+                {otherPlayers.length > 0 && (
+                    <div style={{
+                        backgroundColor: 'white',
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        marginTop: '24px',
+                        padding: '24px'
+                    }}>
+                        <h2 style={{
+                            marginBottom: '16px',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            color: '#111827'
+                        }}>
+                            🎯 ターゲット選択 (必須)
+                        </h2>
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '12px'
+                        }}>
+                            {otherPlayers.map((player, index) => (
+                                <button
+                                    key={player.id}
+                                    onClick={() => handleTargetSelect(player.id)}
+                                    style={{
+                                        padding: '16px',
+                                        borderRadius: '8px',
+                                        border: selectedTarget === player.id ? '3px solid #3b82f6' : '2px solid #e5e7eb',
+                                        backgroundColor: selectedTarget === player.id ? '#dbeafe' : 'white',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s',
+                                        textAlign: 'left'
+                                    }}
+                                >
+                                    <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                                        👤 プレイヤー {index + 1}
+                                    </div>
+                                    <div style={{ color: '#6b7280', fontSize: '14px' }}>
+                                        ID: {player.id.substring(0, 8)}...
+                                    </div>
+                                    <div style={{ marginTop: '8px', fontSize: '16px', fontWeight: 'bold' }}>
+                                        📊 保有株: {player.holding} 株
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 )}
 
                 {/* 株価チャート */}
@@ -200,8 +289,12 @@ const Game = () => {
                 {/* コントロールボタン */}
                 <ControlButtons onButtonClick={handleButtonClick} />
 
-                {/* カードコンポーネント */}
-                <CardList onButtonClick={handleCardEffect} />
+                {/* 攻撃ボタン */}
+                <CardList 
+                    onButtonClick={handleAttack}
+                    selectedTarget={selectedTarget}
+                    hasTargets={otherPlayers.length >= 1}
+                />
             </div>
         </div>
     );

@@ -26,7 +26,7 @@ let playerMoney = {}; // プレイヤーの持ち金 (socket.id: 金額)
 let playerHolding = {}; // プレイヤーの保有株数 (socket.id: 株数)
 
 const INITIAL_MONEY = 100000; // 初期所持金: 10万円
-const INITIAL_HOLDING = 10; // 初期保有株数: 0株
+const INITIAL_HOLDING = 10; // 初期保有株数: 10株
 
 // 株価データを生成する関数
 function generateStockData() {
@@ -126,7 +126,7 @@ io.on('connection', (socket) => {
 
     // 初期保有株数を設定
     playerHolding[socket.id] = INITIAL_HOLDING;
-    console.log(`📈 ${socket.id} の初期保有株数: ${INITIAL_HOLDING.toLocaleString()} 株`);
+    console.log(`📈 ${socket.id} の初期保有株数: ${INITIAL_HOLDING}株`);
 
     // ルーム作成
     socket.on('createRoom', (roomNumber, callback) => {
@@ -166,10 +166,10 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // 部屋が満員の場合
-        if (rooms[roomNumber].size >= 2) {
+        // 部屋が満員の場合（4人まで）
+        if (rooms[roomNumber].size >= 4) {
             console.log('ただいま、このルームは満員なので、参加できません！')
-            callback({ success: false, message: 'このルームは満員です！' });
+            callback({ success: false, message: 'このルームは満員です（最大4人）！' });
             return;
         }
 
@@ -219,7 +219,7 @@ io.on('connection', (socket) => {
         const userIds = Array.from(rooms[roomNumber].keys());
 
         // 部屋のユーザー数が2人で、両方とも ready ならマッチング開始
-        if (rooms[roomNumber].size === 2) {
+        if (rooms[roomNumber].size === 4) {
             const allReady = Array.from(rooms[roomNumber].values()).every(status => status === 'ready');
             
             if (allReady) {
@@ -228,6 +228,9 @@ io.on('connection', (socket) => {
                 // 両方のユーザーに「対戦相手が見つかりました」イベントを送信
                 io.to(userIds[0]).emit('opponentFound', { roomNumber });
                 io.to(userIds[1]).emit('opponentFound', { roomNumber });
+                io.to(userIds[2]).emit('opponentFound', { roomNumber });
+                io.to(userIds[3]).emit('opponentFound', { roomNumber });
+
 
                 // 自動変動を開始
                 startAutoUpdate(roomNumber);
@@ -261,19 +264,31 @@ io.on('connection', (socket) => {
         // プレイヤーの保有株数を確認（なければ初期値を設定）
         if (!playerHolding[socket.id]) {
             playerHolding[socket.id] = INITIAL_HOLDING;
-            console.log(`📈 ${socket.id} の保有株数を初期化: ${INITIAL_HOLDING.toLocaleString()} 株`);
+            console.log(`📈 ${socket.id} の保有株数を初期化: ${INITIAL_HOLDING}株`);
         }
         
         const currentMoney = playerMoney[socket.id];
         const currentHolding = playerHolding[socket.id];
-        console.log(`📤 送信データ: 株価=${roomStockData[roomNumber].length}件, 所持金=¥${currentMoney.toLocaleString()}, 株=${currentHolding.toLocaleString()}`);
+        console.log(`📤 送信データ: 株価=${roomStockData[roomNumber].length}件, 所持金=¥${currentMoney.toLocaleString()}, 株=${currentHolding}株`);
 
+        // 部屋の全プレイヤー情報を収集
+        const allPlayersHoldings = {};
+        if (rooms[roomNumber]) {
+            rooms[roomNumber].forEach((status, playerId) => {
+                allPlayersHoldings[playerId] = playerHolding[playerId] || 0;
+            });
+        }
         
         // 現在の株価データと所持金を送信
         socket.emit('initialStockData', { 
             stockData: roomStockData[roomNumber],
             money: currentMoney,
             holding: currentHolding
+        });
+
+        // 全プレイヤーの保有株数を送信
+        io.to(roomNumber).emit('allPlayersUpdate', {
+            holdings: allPlayersHoldings
         });
     });
 
@@ -328,19 +343,43 @@ io.on('connection', (socket) => {
         console.log(`📤 送信完了`);
     });
 
-    // カードの処理(相手の株を減らす)
-    socket.on('useCard', (data) => {
-        const { roomNumber, effectAmount } = data;
-        console.log(`🃏 部屋 ${roomNumber} でカード効果を適用: 相手の株を ${effectAmount} 減少`);
+    // 攻撃処理(相手の株を減らす - ターゲット指定対応)
+    socket.on('attackPlayer', (data) => {
+        const { roomNumber, effectAmount, targetId } = data;
+        console.log(`⚔️ 部屋 ${roomNumber} で攻撃: 相手の株を ${effectAmount} 減少`);
 
-        const userIds = Array.from(rooms[roomNumber].keys());
-
-        const opponentId = userIds.find(id => id !== socket.id);
-        if (!opponentId) {
-            console.error(`❌ 対戦相手が見つかりません`);
+        if (!rooms[roomNumber]) {
+            console.error(`❌ 部屋 ${roomNumber} が存在しません`);
+            socket.emit('attackFailed', { message: '部屋が見つかりません' });
             return;
         }
 
+        const userIds = Array.from(rooms[roomNumber].keys());
+
+        // ターゲットの決定
+        let opponentId;
+        if (targetId) {
+            // ターゲットが指定されている場合
+            if (!userIds.includes(targetId)) {
+                console.error(`❌ 指定されたターゲット ${targetId} が部屋にいません`);
+                socket.emit('attackFailed', { message: 'ターゲットが見つかりません' });
+                return;
+            }
+            if (targetId === socket.id) {
+                console.error(`❌ 自分自身をターゲットにできません`);
+                socket.emit('attackFailed', { message: '自分自身をターゲットにできません' });
+                return;
+            }
+            opponentId = targetId;
+        } else {
+            // ターゲット未指定の場合（2人プレイ用）
+            opponentId = userIds.find(id => id !== socket.id);
+            if (!opponentId) {
+                console.error(`❌ 対戦相手が見つかりません`);
+                socket.emit('attackFailed', { message: '対戦相手が見つかりません' });
+                return;
+            }
+        }
 
         // 相手の株を減らす
         if(playerHolding[opponentId] !== undefined) {
@@ -351,12 +390,36 @@ io.on('connection', (socket) => {
             console.log(`📉 ${opponentId} の保有株数: ${beforeHolding} → ${afterHolding}`);
 
             // 対戦相手に更新された保有株数を送信
-            io.to(opponentId).emit('holdingUpdated', { holding: playerHolding[opponentId], changeAmount: effectAmount, message:`相手がカードを使用しました.保有株が ${Math.abs(effectAmount)} 株減少` });
+            io.to(opponentId).emit('holdingsUpdated', { 
+                holding: playerHolding[opponentId], 
+                changeAmount: effectAmount, 
+                message: `相手から攻撃を受けました。保有株が ${Math.abs(effectAmount)} 株減少` 
+            });
 
-            socket.emit('cardUsed', { success: true, message: `カードを使用しました.`, opponentHolding: playerHolding[opponentId] 
+            // 攻撃者に成功通知
+            socket.emit('attackSuccess', { 
+                success: true, 
+                message: `攻撃成功！相手の株を ${Math.abs(effectAmount)} 株減らしました`,
+                opponentHolding: playerHolding[opponentId] 
+            });
+
+            // 部屋の全員に他のプレイヤーの保有株数を送信（観戦用）
+            const allPlayersHoldings = {};
+            userIds.forEach(id => {
+                allPlayersHoldings[id] = playerHolding[id] || 0;
+            });
+            
+            io.to(roomNumber).emit('allPlayersUpdate', {
+                holdings: allPlayersHoldings,
+                lastAction: {
+                    userId: socket.id,
+                    targetId: opponentId,
+                    effect: effectAmount
+                }
             });
         } else {
             console.error(`❌ ${opponentId} の保有株数データが存在しません`);
+            socket.emit('attackFailed', { message: 'エラーが発生しました' });
         }
     });
 
@@ -410,7 +473,7 @@ io.on('connection', (socket) => {
 
         console.log(`切断後の部屋情報:`, rooms);
     });
-}); // ← この閉じ括弧が io.on('connection', ...) の終わり
+});
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
