@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 function generateRoomId(len = 6) {
@@ -16,8 +16,7 @@ export default function CreateRoomPage() {
   const [name, setName] = useState("");
 
   useEffect(() => {
-    // 初回のみ自動採番 & 既存の名前ロード
-    setRoom((r) => (r || generateRoomId()));
+    setRoom((r) => r || generateRoomId());
     try {
       const prev = sessionStorage.getItem("playerName");
       if (prev) setName(prev);
@@ -35,18 +34,13 @@ export default function CreateRoomPage() {
 
   const refresh = () => setRoom(generateRoomId());
 
-  const start = () => {
-    if (!name.trim()) {
-      alert("プレイヤー名を入力してください");
-      return;
-
-    }
-    if (!room.trim()) {
-      alert("ルームIDを入力してください");
-      return;
-    }
-    sessionStorage.setItem("playerName", name.trim());
-    router.push(`/game?room=${room.trim()}`);
+  const goLobby = () => {
+    const n = name.trim();
+    const r = room.trim().toUpperCase();
+    if (!n) return alert("プレイヤー名を入力してください");
+    if (!r) return alert("ルームIDを入力してください");
+    sessionStorage.setItem("playerName", n);
+    router.push(`/lobby?room=${encodeURIComponent(r)}`);
   };
 
   return (
@@ -83,34 +77,25 @@ export default function CreateRoomPage() {
 
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
           <button onClick={() => history.back()} style={btnGhost}>戻る</button>
-          <button onClick={start} style={btnPrimary}>このルームで開始</button>
+          <button onClick={goLobby} style={btnPrimary}>このルームのロビーへ</button>
         </div>
       </div>
     </main>
   );
 }
 
-const input: React.CSSProperties = {
-  width: "100%",
-  padding: "12px 14px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-  marginTop: 6,
+const input: CSSProperties = {
+  width: "100%", padding: "12px 14px", borderRadius: 10,
+  border: "1px solid #ddd", marginTop: 6,
 };
 
-const btnPrimary: React.CSSProperties = {
-  padding: "10px 16px",
-  borderRadius: 10,
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
+const btnPrimary: CSSProperties = {
+  padding: "10px 16px", borderRadius: 10, border: "1px solid #111",
+  background: "#111", color: "#fff", cursor: "pointer",
 };
 
-const btnGhost: React.CSSProperties = {
-  padding: "10px 16px",
-  borderRadius: 10,
-  border: "1px solid #ccc",
-  background: "#fff",
-  cursor: "pointer",
+const btnGhost: CSSProperties = {
+  padding: "10px 16px", borderRadius: 10, border: "1px solid #ccc",
+  background: "#fff", cursor: "pointer",
 };
+  

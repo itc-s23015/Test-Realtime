@@ -8,7 +8,6 @@ export default function HomePage() {
   const [name, setName] = useState("");
   const [roomId, setRoomId] = useState("");
 
-  // 既存の名前があれば表示
   useEffect(() => {
     try {
       const prev = sessionStorage.getItem("playerName");
@@ -29,7 +28,7 @@ export default function HomePage() {
     if (!n) return alert("プレイヤー名を入力してください");
     if (!r) return alert("ルームIDを入力してください");
     sessionStorage.setItem("playerName", n);
-    router.push(`/game?room=${encodeURIComponent(r)}`);
+    router.push(`/lobby?room=${encodeURIComponent(r)}`); // ← ロビーへ
   };
 
   return (
@@ -44,31 +43,15 @@ export default function HomePage() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="あなたの名前"
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          borderRadius: 10,
-          border: "1px solid #ddd",
-          marginTop: 6,
-          marginBottom: 16,
-        }}
-      />
+        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #ddd", marginTop: 6, marginBottom: 16 }}
+         />
 
       <label style={{ display: "block", fontWeight: 600 }}>ルームID</label>
       <input
         value={roomId}
         onChange={(e) => setRoomId(e.target.value.toUpperCase())}
         placeholder="ABC123"
-        style={{
-          width: "100%",
-          padding: "12px 14px",
-          borderRadius: 10,
-          border: "1px solid #ddd",
-          marginTop: 6,
-          marginBottom: 16,
-          letterSpacing: 1,
-          textTransform: "uppercase",
-        }}
+        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #ddd", marginTop: 6, marginBottom: 16, letterSpacing: 1, textTransform: "uppercase" }}
       />
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
@@ -79,7 +62,7 @@ export default function HomePage() {
   );
 }
 
-const btnPrimary = {
+const btnPrimary: React.CSSProperties = {
   padding: "10px 16px",
   borderRadius: 10,
   border: "1px solid #111",
@@ -88,7 +71,7 @@ const btnPrimary = {
   cursor: "pointer",
 };
 
-const btnGhost = {
+const btnGhost: React.CSSProperties = {
   padding: "10px 16px",
   borderRadius: 10,
   border: "1px solid #ccc",
