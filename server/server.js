@@ -4,12 +4,20 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
+const allowlist = (process.env.CORS_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
+
 const io = new Server(server, {
-    cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-        methods: ['GET', 'POST'],
-    },
+  cors: {
+    origin: allowlist,               // 複数ドメインOK
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ["websocket"],         // 安定化
 });
+
 
 let rooms = {}; // ルーム番号ごとの接続情報
 let roomStockData = {}; // 各部屋の株価データ
