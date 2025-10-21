@@ -10,7 +10,7 @@ import CardList from "./card";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 2000;
+const AUTO_UPDATE_INTERVAL = 10000;
 
 function generateStockData(seed = Date.now()) {
     const data = [];
