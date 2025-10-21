@@ -39,7 +39,6 @@ export default function LobbyClient({ room }: { room: string }) {
     const client = new Ably.Realtime.Promise({
       authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
       closeOnUnload: true,
-      recover: null, // dev中はresumeを抑えてログを静かに
     });
     clientRef.current = client;
 

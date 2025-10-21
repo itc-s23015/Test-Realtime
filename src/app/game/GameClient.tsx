@@ -36,7 +36,6 @@ export default function GameClient({ room }: Props) {
       // ★ 重要: room を付与してサーバーの capability と一致させる
       authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
       closeOnUnload: true,
-      recover: null, // dev中は再接続履歴を使わずログを静かに
     });
     clientRef.current = client;
 
