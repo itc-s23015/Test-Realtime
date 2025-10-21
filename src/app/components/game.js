@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Ably from "ably";
 import StockChart from "./StockChart";
@@ -10,15 +10,13 @@ import CardList from "./card";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 2000; // 2秒
+const AUTO_UPDATE_INTERVAL = 2000;
 
-// 株価データを生成する関数
 function generateStockData(seed = Date.now()) {
     const data = [];
     let price = 15000;
     const startDate = new Date('2024-01-01');
     
-    // シード値を使って再現可能な乱数生成
     let random = seed;
     const seededRandom = () => {
         random = (random * 9301 + 49297) % 233280;
@@ -44,7 +42,6 @@ function generateStockData(seed = Date.now()) {
 const Game = () => {
     const router = useRouter();
     
-    // URL パラメータから部屋番号を取得
     const [roomNumber, setRoomNumber] = useState(null);
     const [error, setError] = useState("");
     const [stockData, setStockData] = useState([]);
@@ -59,6 +56,19 @@ const Game = () => {
     const chRef = useRef(null);
     const autoTimerRef = useRef(null);
     const navigatingRef = useRef(false);
+    const initializedRef = useRef(false);
+
+    // 最新のholding値を常に参照できるようにRefで保持
+    const holdingRef = useRef(holding);
+    const moneyRef = useRef(money);
+    
+    useEffect(() => {
+        holdingRef.current = holding;
+    }, [holding]);
+    
+    useEffect(() => {
+        moneyRef.current = money;
+    }, [money]);
 
     const clientId = useMemo(() => {
         if (typeof window === "undefined") return "";
@@ -69,6 +79,22 @@ const Game = () => {
         if (!roomNumber) return "";
         return roomNumber.toUpperCase();
     }, [roomNumber]);
+
+    // Presence更新関数（useCallbackで安定化）
+    const updatePresence = useCallback(async (newMoney, newHolding) => {
+        if (!chRef.current) return;
+        
+        try {
+            await chRef.current.presence.update({
+                name: clientId,
+                money: newMoney,
+                holding: newHolding,
+            });
+            console.log("✅ Presence更新:", { money: newMoney, holding: newHolding });
+        } catch (e) {
+            console.error("❌ Presence更新失敗:", e);
+        }
+    }, [clientId]);
 
     useEffect(() => {
         const query = new URLSearchParams(window.location.search);
@@ -84,14 +110,14 @@ const Game = () => {
     }, [router]);
 
     useEffect(() => {
-        if (!roomU || !clientId) return;
+        if (!roomU || !clientId || initializedRef.current) return;
+        
+        initializedRef.current = true;
+        console.log("🎮 ゲーム画面初期化: 部屋番号", roomU);
 
-        console.log("🎮 ゲーム画面: 部屋番号", roomU);
-
-        // Ably接続
         const client = new Ably.Realtime.Promise({
             authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
-            closeOnUnload: true,
+            closeOnUnload: false, // ページ遷移時の自動切断を無効化
         });
         clientRef.current = client;
 
@@ -108,20 +134,16 @@ const Game = () => {
             await ch.attach();
             console.log("✅ チャンネル接続完了:", channelName);
 
-            // Presenceに参加（プレイヤーデータ付き）
             await ch.presence.enter({
                 name: clientId,
                 money: INITIAL_MONEY,
                 holding: INITIAL_HOLDING,
             });
 
-            // 既存のプレイヤー情報を取得
             await refreshPlayers();
 
-            // Presenceの変更を監視
             ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
-            // 株価初期化（ホストのみ）
             const members = await ch.presence.get();
             const ids = members.map(m => m.clientId).sort();
             const isHost = ids[0] === clientId;
@@ -132,18 +154,15 @@ const Game = () => {
                 const initialData = generateStockData(seed);
                 setStockData(initialData);
                 
-                // 他のプレイヤーに初期データを送信
                 await ch.publish("stock-init", {
                     seed,
                     data: initialData,
                     by: clientId,
                 });
 
-                // 自動変動開始（ホストのみ）
                 startAutoUpdate(ch, initialData);
             }
 
-            // イベント購読
             ch.subscribe("stock-init", (msg) => {
                 console.log("📊 株価データ受信");
                 setStockData(msg.data.data);
@@ -158,22 +177,19 @@ const Game = () => {
                 if (msg.data.targetId === clientId) {
                     console.log("⚔️ 攻撃を受けました:", msg.data.effectAmount);
                     
-                    // クロージャ問題を回避するため、直接stateを更新
-                    setHolding(prevHolding => {
-                        const newHolding = Math.max(0, prevHolding + msg.data.effectAmount);
-                        
-                        // Presenceを更新（非同期だが順序は保証されない）
-                        setMoney(prevMoney => {
-                            ch.presence.update({
-                                name: clientId,
-                                money: prevMoney,
-                                holding: newHolding,
-                            });
-                            return prevMoney;
-                        });
-                        
-                        return newHolding;
-                    });
+                    // Refから最新値を取得
+                    const currentHolding = holdingRef.current;
+                    const currentMoney = moneyRef.current;
+                    
+                    const newHolding = Math.max(0, currentHolding + msg.data.effectAmount);
+                    
+                    // State更新
+                    setHolding(newHolding);
+                    
+                    // Presence更新を遅延実行（State更新後）
+                    setTimeout(() => {
+                        updatePresence(currentMoney, newHolding);
+                    }, 50);
 
                     setError(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
                     setTimeout(() => setError(""), 3000);
@@ -200,16 +216,38 @@ const Game = () => {
             if (autoTimerRef.current) {
                 clearInterval(autoTimerRef.current);
             }
-            try { chRef.current?.unsubscribe(); } catch {}
-            try { chRef.current?.presence.leave(); } catch {}
             
-            const doClose = () => { try { clientRef.current?.close(); } catch {} };
-            if (navigatingRef.current) setTimeout(doClose, 200);
-            else doClose();
+            const cleanup = async () => {
+                try {
+                    if (chRef.current) {
+                        chRef.current.unsubscribe();
+                        await chRef.current.presence.leave();
+                    }
+                } catch (e) {
+                    console.warn("クリーンアップ中のエラー:", e);
+                }
+                
+                const doClose = () => {
+                    try {
+                        if (clientRef.current) {
+                            clientRef.current.close();
+                        }
+                    } catch (e) {
+                        console.warn("接続クローズ中のエラー:", e);
+                    }
+                };
+                
+                if (navigatingRef.current) {
+                    setTimeout(doClose, 200);
+                } else {
+                    doClose();
+                }
+            };
+            
+            cleanup();
         };
-    }, [roomU, clientId, router]); // roomU を追加
+    }, [roomU, clientId, router, updatePresence]);
 
-    // 自動変動を開始（ホストのみ）
     const startAutoUpdate = (ch, initialData) => {
         if (autoTimerRef.current) return;
 
@@ -220,7 +258,6 @@ const Game = () => {
             const changeAmount = Math.floor((Math.random() - 0.5) * 600);
             const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
-            // データ更新
             currentData[currentData.length - 1] = {
                 ...currentData[currentData.length - 1],
                 price: newPrice,
@@ -241,7 +278,6 @@ const Game = () => {
 
             setStockData([...currentData]);
 
-            // 全員に送信
             try {
                 await ch.publish("stock-update", {
                     stockData: currentData,
@@ -255,7 +291,6 @@ const Game = () => {
         }, AUTO_UPDATE_INTERVAL);
     };
 
-    // 株価変動ボタンクリック処理
     const handleButtonClick = async (changeAmount) => {
         if (!chRef.current || stockData.length === 0) return;
 
@@ -298,7 +333,6 @@ const Game = () => {
         }
     };
 
-    // 攻撃ボタンの処理
     const handleAttack = async (effectAmount) => {
         if (!chRef.current) return;
 
@@ -310,16 +344,17 @@ const Game = () => {
             return;
         }
 
-        console.log("⚔️ 攻撃:", effectAmount, "ターゲット:", selectedTarget);
+        const targetId = selectedTarget || otherPlayers[0];
+        console.log("⚔️ 攻撃:", effectAmount, "ターゲット:", targetId);
 
         try {
             await chRef.current.publish("attack", {
-                targetId: selectedTarget || otherPlayers[0],
+                targetId,
                 effectAmount,
                 attackerId: clientId,
             });
 
-            setError(`✅ 攻撃成功！相手の株を ${Math.abs(effectAmount)} 株減らしました`);
+            setError(`✅ 攻撃成功！${allPlayers[targetId]?.name || targetId} の株を ${Math.abs(effectAmount)} 株減らしました`);
             setTimeout(() => setError(""), 3000);
         } catch (e) {
             console.error("❌ 攻撃送信失敗:", e);
@@ -327,13 +362,11 @@ const Game = () => {
         }
     };
 
-    // ターゲット選択
     const handleTargetSelect = (targetId) => {
         setSelectedTarget(targetId);
         console.log("🎯 ターゲット選択:", targetId);
     };
 
-    // 他のプレイヤーのリスト取得
     const otherPlayers = Object.keys(allPlayers)
         .filter(id => id !== clientId)
         .map(id => ({
@@ -392,12 +425,10 @@ const Game = () => {
                     </div>
                 )}
 
-                {/* プレイヤー情報 */}
                 {roomNumber && money !== null && holding !== null && (
                     <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
                 )}
 
-                {/* 他のプレイヤー情報（ターゲット選択） */}
                 {otherPlayers.length > 0 && (
                     <div style={{
                         backgroundColor: 'white',
@@ -419,7 +450,7 @@ const Game = () => {
                             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                             gap: '12px'
                         }}>
-                            {otherPlayers.map((player, index) => (
+                            {otherPlayers.map((player) => (
                                 <button
                                     key={player.id}
                                     onClick={() => handleTargetSelect(player.id)}
@@ -448,17 +479,14 @@ const Game = () => {
                     </div>
                 )}
 
-                {/* 株価チャート */}
                 {stockData.length > 0 && (
                     <StockChart stockData={stockData} />
                 )}
 
-                {/* コントロールボタン */}
                 {stockData.length > 0 && (
                     <ControlButtons onButtonClick={handleButtonClick} />
                 )}
 
-                {/* 攻撃ボタン */}
                 {otherPlayers.length > 0 && (
                     <CardList 
                         onButtonClick={handleAttack}

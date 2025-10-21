@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./Hand.module.css";
+import styles from "../styles/Hand.module.css";
 import CardView from "./CardView.jsx";
 
 export default function Hand({

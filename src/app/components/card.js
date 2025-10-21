@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import styles from "../styles/CardList.module.css";
 
-export default function CardList({ onButtonClick, selectedTarget, hasTargets }) {
+const CardList = ({ onButtonClick, selectedTarget, hasTargets }) => {
   const [hoveredButton, setHoveredButton] = useState(null);
 
   const buttons = [
@@ -11,57 +12,26 @@ export default function CardList({ onButtonClick, selectedTarget, hasTargets }) 
   ];
 
   return (
-    <div style={{ 
-      backgroundColor: 'white', 
-      borderRadius: '12px', 
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      marginTop: '24px', 
-      padding: '24px' 
-    }}>
-      <h2 style={{ 
-        marginBottom: '16px', 
-        fontSize: '18px', 
-        fontWeight: 'bold',
-        color: '#111827'
-      }}>
-        ⚔️ 攻撃ボタン - 相手の株を減らす
-      </h2>
-      
+    <div className={styles.container}>
+      <h2 className={styles.title}>⚔️ 攻撃ボタン - 相手の株を減らす</h2>
+    
       {hasTargets && !selectedTarget && (
-        <div style={{
-          marginBottom: '16px',
-          padding: '12px',
-          backgroundColor: '#fef3c7',
-          borderRadius: '8px',
-          textAlign: 'center',
-          border: '2px solid #f59e0b'
-        }}>
-          <span style={{ fontWeight: 'bold', color: '#92400e' }}>
+        <div className={`${styles.alert} ${styles.alertWarning}`}>
+          {/* <span style={{ fontWeight: 'bold', color: '#92400e' }}> */}
             ⚠️ 先にターゲットを選択してください
-          </span>
+          {/* </span> */}
         </div>
       )}
 
       {selectedTarget && (
-        <div style={{
-          marginBottom: '16px',
-          padding: '12px',
-          backgroundColor: '#dbeafe',
-          borderRadius: '8px',
-          textAlign: 'center',
-          border: '2px solid #3b82f6'
-        }}>
-          <span style={{ fontWeight: 'bold', color: '#1e40af' }}>
+        <div className={`${styles.alert} ${styles.alertInfo}`}>
+          {/* <span style={{ fontWeight: 'bold', color: '#1e40af' }}> */}
             🎯 ターゲット選択中: {selectedTarget.substring(0, 8)}...
-          </span>
+          {/* </span> */}
         </div>
       )}
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: '12px'
-      }}>
+      <div className={styles.grid}>
         {buttons.map((btn, index) => {
           const canUse = !hasTargets || selectedTarget;
           return (
@@ -87,22 +57,15 @@ export default function CardList({ onButtonClick, selectedTarget, hasTargets }) 
               }}
             >
               <div>{btn.label} {btn.emoji}</div>
-              <div style={{ fontSize: '12px', marginTop: '4px', opacity: 0.9 }}>
-                相手の株を減らす
-              </div>
+              <div className={styles.buttonSub}>相手の株を減らす</div>
             </button>
           );
         })}
       </div>
       
-      <p style={{
-        marginTop: '16px',
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '14px'
-      }}>
-        ⚔️ ボタンを押して相手の保有株を減らしましょう！
-      </p>
+      <p className={styles.footer}>⚔️ ボタンを押して相手の保有株を減らしましょう！</p>
     </div>
   );
 }
+
+export default CardList;  
