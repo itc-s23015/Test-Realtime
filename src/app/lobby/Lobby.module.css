@@ -1,0 +1,190 @@
+/* src/lobby/Lobby.module.css */
+
+/* ===== ベース ===== */
+.wrap {
+  padding: 32px;              /* 16 → 32 で余白拡大 */
+  color: #fff;
+  background: #111;
+  min-height: 100vh;
+  max-width: 1680px;          /* 横幅を広く */
+  margin: 0 auto;             /* 画面中央に */
+  font-size: 18px;            /* ベース文字を少し拡大 */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.status { font-size: 12px; opacity: .9; }
+
+/* ===== レイアウト ===== */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;                  /* 16 → 20 */
+}
+.col {}
+
+/* ===== パネル/フォーム ===== */
+.panel {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 18px;              /* 12 → 18 */
+}
+
+.row {
+  display: grid;
+  gap: 8px;                   /* 6 → 8 */
+  margin: 12px 0;             /* 10 → 12 */
+}
+
+.input {
+  background: #111;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 10px;        /* 8 → 10 */
+  padding: 12px 14px;         /* 8 → 12/14 */
+}
+
+.buttons { display: flex; gap: 8px; }
+
+/* ===== ボタン ===== */
+.btn {
+  padding: 10px 14px;         /* 8 → 10/14 */
+  border: 1px solid #444;
+  border-radius: 10px;        /* 8 → 10 */
+  background: #333;
+  color: #fff;
+}
+
+.btnGhost {
+  padding: 10px 14px;
+  border: 1px solid #555;
+  border-radius: 10px;
+  background: #222;
+  color: #fff;
+}
+
+.btnPrimary,
+.btnStart {
+  padding: 10px 16px;         /* 8 → 10/16 */
+  border-radius: 10px;
+  border: 1px solid #00e676;
+  background: #00e676;
+  color: #111;
+  font-weight: 700;
+}
+
+/* ===== 区切り ===== */
+.separator { text-align: center; margin: 8px 0; opacity: .7; }
+
+/* ===== ルーム情報 ===== */
+.roomHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.roomTitle { font-weight: 700; }
+.roomMeta  { font-size: 12px; opacity: .8; }
+
+/* ===== プレイヤー一覧 ===== */
+.playerList { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.empty { opacity: .7; font-size: 13px; }
+
+.playerItem {
+  display: flex;
+  gap: 12px;                  /* 10 → 12 */
+  align-items: center;
+  background: #141414;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;        /* 10 → 12 */
+  padding: 12px;              /* 8 → 12 */
+}
+
+.avatar {
+  width: 40px;                /* 32 → 40 */
+  height: 40px;               /* 32 → 40 */
+  border-radius: 50%;
+  background: #333;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 16px;            /* 追加 */
+}
+
+.playerMain { display: grid; }
+
+.playerName {
+  font-weight: 700;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.badge {
+  font-size: 11px;            /* 10 → 11 */
+  padding: 3px 8px;           /* 2/6 → 3/8 */
+  border: 1px solid #555;
+  border-radius: 999px;
+}
+
+.badgeMe {
+  font-size: 11px;
+  padding: 3px 8px;
+  border: 1px solid #00e676;
+  color: #00e676;
+  border-radius: 999px;
+}
+
+.playerSub { font-size: 12px; opacity: .8; }
+
+.footerRow {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;           /* 10 → 14 */
+}
+
+/* ===== さらに大画面(4K等)で少し拡張したい場合 ===== */
+@media (min-width: 1920px) {
+  .wrap   { max-width: 1880px; font-size: 19px; padding: 36px; }
+  .panel  { padding: 20px; }
+  .btn, .btnGhost { padding: 12px 16px; }
+  .btnPrimary, .btnStart { padding: 12px 18px; }
+  .avatar { width: 44px; height: 44px; font-size: 17px; }
+}
+
+/* ===== スマホ/タブレットでの見やすさ（任意） ===== */
+@media (max-width: 860px) {
+  .columns { grid-template-columns: 1fr; }
+  .wrap    { padding: 20px; font-size: 16px; }
+}
+
+/* 発光する準備OKボタン */
+.btnReady {
+  background: #00e676;
+  border-color: #00e676;
+  color: #111;
+  font-weight: 700;
+  /* ほんのり光る */
+  box-shadow:
+    0 0 0 2px rgba(0, 230, 118, 0.22),
+    0 8px 20px rgba(0, 230, 118, 0.25);
+  transition: box-shadow .15s ease, transform .05s ease, filter .15s ease;
+}
+
+.btnReady:hover {
+  box-shadow:
+    0 0 0 3px rgba(0, 230, 118, 0.32),
+    0 12px 26px rgba(0, 230, 118, 0.35);
+  filter: brightness(1.02);
+}
+
+.btnReady:active {
+  transform: translateY(1px);
+}
+
