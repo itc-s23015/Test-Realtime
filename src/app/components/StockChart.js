@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import styles from '../styles/StockChart.module.css';
 
 export default function StockChart({ stockData }) {
     const canvasRef = useRef(null);
@@ -178,43 +179,19 @@ export default function StockChart({ stockData }) {
     };
 
     return (
-        <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            padding: '24px',
-            marginBottom: '24px'
-        }}>
+        <div className={styles.container}>
             <canvas
                 ref={canvasRef}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
-                style={{
-                    width: '100%',
-                    height: '400px',
-                    cursor: 'crosshair',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                }}
+                className={styles.canvas}
             />
-            <div style={{
-                marginTop: '16px',
-                display: 'flex',
-                gap: '16px',
-                fontSize: '14px',
-                color: '#6b7280',
-                alignItems: 'center'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: '#3b82f6',
-                        borderRadius: '50%'
-                    }}></div>
+            <div className={styles.legend}>
+                <div className={styles.legendItem}>
+                    <div className={styles.legendDot}></div>
                     <span>株価推移</span>
                 </div>
-                <div style={{ marginLeft: 'auto', fontWeight: 'bold', fontSize: '16px', color: '#111827' }}>
+                <div className={styles.latesPrice}>
                     最新価格: ¥{stockData[stockData.length - 1]?.price?.toLocaleString() || "読込中..."}
                 </div>
             </div>

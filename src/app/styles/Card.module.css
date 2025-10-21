@@ -1,0 +1,90 @@
+.wrapper {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-top: 24px;
+  padding: 24px;
+}
+
+.title {
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.notice {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid transparent;
+}
+
+.warning {
+  background-color: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.info {
+  background-color: #dbeafe;
+  border-color: #3b82f6;
+}
+
+.noticeText {
+  font-weight: bold;
+  color: #1e40af; /* infoの文字色をデフォルトに */
+}
+
+.warning .noticeText {
+  color: #92400e;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.button {
+  --btn-bg: #3b82f6;            /* フォールバック */
+  --btn-bg-hover: #2563eb;      /* フォールバック */
+
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  background-color: var(--btn-bg);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.button:not(:disabled):hover {
+  background-color: var(--btn-bg-hover);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.subLabel {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.helper {
+  margin-top: 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
+}
