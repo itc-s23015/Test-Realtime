@@ -1,26 +1,23 @@
-// app/api/ably-token/route.ts でも route.js でもOK
-import Ably from 'ably/promises';
+// app/api/ably-token/route.ts
+import { NextResponse } from "next/server";
+import Ably from "ably/promises";
 
 export async function GET(req: Request) {
-  const key = process.env.ABLY_API_KEY;
-  if (!key) return new Response('ABLY_API_KEY is missing', { status: 500 });
+  const url = new URL(req.url);
+  const clientId = url.searchParams.get("clientId") ?? "anonymous";
+  const roomRaw = url.searchParams.get("room") ?? "*";
 
-  const client = new Ably.Rest(key);
-  const { searchParams } = new URL(req.url);
+  // ★ クライアントで toUpperCase しているならサーバも合わせる
+  const room = roomRaw.toUpperCase();
 
-  const clientId = searchParams.get('clientId') || 'anonymous';
-  const room = searchParams.get('room') || 'lobby';
+  const rest = new Ably.Rest(process.env.ABLY_API_KEY!);
 
-  // この部屋だけに publish/subscribe を許可
-  const capability = JSON.stringify({ [`rooms:*`]: ['publish', 'subscribe'] });
+ const capabilityObj = { "rooms:*": ["publish", "subscribe", "presence"] }; // ← presence を忘れずに
 
-  const tokenRequest = await client.auth.createTokenRequest({
+  const tokenRequest = await rest.auth.createTokenRequest({
     clientId,
-    capability,
-    ttl: 60 * 60 * 1000, // 任意: 1時間
+    capability: JSON.stringify(capabilityObj), // ← JSON文字列で渡す
   });
 
-  return new Response(JSON.stringify(tokenRequest), {
-    headers: { 'Content-Type': 'application/json' },
-  });
+  return NextResponse.json(tokenRequest);
 }
