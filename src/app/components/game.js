@@ -65,6 +65,11 @@ const Game = () => {
         return sessionStorage.getItem("playerName") || `player-${crypto.randomUUID().slice(0, 6)}`;
     }, []);
 
+    const roomU = useMemo(() => {
+        if (!roomNumber) return "";
+        return roomNumber.toUpperCase();
+    }, [roomNumber]);
+
     useEffect(() => {
         const query = new URLSearchParams(window.location.search);
         const room = query.get("room");
@@ -75,8 +80,12 @@ const Game = () => {
             return;
         }
 
-        const roomU = room.toUpperCase();
-        setRoomNumber(roomU);
+        setRoomNumber(room.toUpperCase());
+    }, [router]);
+
+    useEffect(() => {
+        if (!roomU || !clientId) return;
+
         console.log("🎮 ゲーム画面: 部屋番号", roomU);
 
         // Ably接続
@@ -148,14 +157,22 @@ const Game = () => {
             ch.subscribe("attack", async (msg) => {
                 if (msg.data.targetId === clientId) {
                     console.log("⚔️ 攻撃を受けました:", msg.data.effectAmount);
-                    const newHolding = Math.max(0, holding + msg.data.effectAmount);
-                    setHolding(newHolding);
                     
-                    // Presenceを更新
-                    await ch.presence.update({
-                        name: clientId,
-                        money,
-                        holding: newHolding,
+                    // クロージャ問題を回避するため、直接stateを更新
+                    setHolding(prevHolding => {
+                        const newHolding = Math.max(0, prevHolding + msg.data.effectAmount);
+                        
+                        // Presenceを更新（非同期だが順序は保証されない）
+                        setMoney(prevMoney => {
+                            ch.presence.update({
+                                name: clientId,
+                                money: prevMoney,
+                                holding: newHolding,
+                            });
+                            return prevMoney;
+                        });
+                        
+                        return newHolding;
                     });
 
                     setError(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
@@ -190,7 +207,7 @@ const Game = () => {
             if (navigatingRef.current) setTimeout(doClose, 200);
             else doClose();
         };
-    }, [router, clientId, holding, money]);
+    }, [roomU, clientId, router]); // roomU を追加
 
     // 自動変動を開始（ホストのみ）
     const startAutoUpdate = (ch, initialData) => {
