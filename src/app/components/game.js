@@ -1,24 +1,70 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import socket from "../socket";
-import StockChart from "../components/StockChart";
-import PlayerInfo from "../components/PlayerInfo";
-import ControlButtons from "../components/ControlButtons";
+import Ably from "ably";
+import StockChart from "./StockChart";
+import PlayerInfo from "./PlayerInfo";
+import ControlButtons from "./ControlButtons";
 import CardList from "./card";
 
+const INITIAL_MONEY = 100000;
+const INITIAL_HOLDING = 10;
+const AUTO_UPDATE_INTERVAL = 2000; // 2秒
+
+// 株価データを生成する関数
+function generateStockData(seed = Date.now()) {
+    const data = [];
+    let price = 15000;
+    const startDate = new Date('2024-01-01');
+    
+    // シード値を使って再現可能な乱数生成
+    let random = seed;
+    const seededRandom = () => {
+        random = (random * 9301 + 49297) % 233280;
+        return random / 233280;
+    };
+
+    for (let i = 0; i < 180; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+
+        price += (seededRandom() - 0.48) * 500;
+        price = Math.max(10000, Math.min(20000, price));
+
+        data.push({
+            date: date.toISOString().split('T')[0],
+            price: Math.round(price),
+            volume: Math.floor(seededRandom() * 100000000) + 50000000
+        });
+    }
+    return data;
+}
+
 const Game = () => {
+    const router = useRouter();
+    
+    // URL パラメータから部屋番号を取得
     const [roomNumber, setRoomNumber] = useState(null);
     const [error, setError] = useState("");
     const [stockData, setStockData] = useState([]);
-    const [money, setMoney] = useState(null);
-    const [holding, setHolding] = useState(null);
-    const [allPlayers, setAllPlayers] = useState({}); // 全プレイヤーの情報
-    const [selectedTarget, setSelectedTarget] = useState(null); // 選択されたターゲット
-    const router = useRouter();
+    const [money, setMoney] = useState(INITIAL_MONEY);
+    const [holding, setHolding] = useState(INITIAL_HOLDING);
+    const [allPlayers, setAllPlayers] = useState({});
+    const [selectedTarget, setSelectedTarget] = useState(null);
+    const [status, setStatus] = useState("connecting");
 
-    // Socket.io接続設定
+    // Refs
+    const clientRef = useRef(null);
+    const chRef = useRef(null);
+    const autoTimerRef = useRef(null);
+    const navigatingRef = useRef(false);
+
+    const clientId = useMemo(() => {
+        if (typeof window === "undefined") return "";
+        return sessionStorage.getItem("playerName") || `player-${crypto.randomUUID().slice(0, 6)}`;
+    }, []);
+
     useEffect(() => {
         const query = new URLSearchParams(window.location.search);
         const room = query.get("room");
@@ -29,155 +75,238 @@ const Game = () => {
             return;
         }
 
-        console.log("ゲーム画面: 部屋番号", room);
-        setRoomNumber(room);
+        const roomU = room.toUpperCase();
+        setRoomNumber(roomU);
+        console.log("🎮 ゲーム画面: 部屋番号", roomU);
 
-        if (!socket.connected) {
-            console.log("Socket接続開始...");
-            socket.connect();
-        } else {
-            console.log("Socket既に接続済み");
-        }
+        // Ably接続
+        const client = new Ably.Realtime.Promise({
+            authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
+            closeOnUnload: true,
+        });
+        clientRef.current = client;
 
-        console.log("joinGameRoomを送信:", room);
-        socket.emit("joinGameRoom", room);
-
-        // 初期株価データと所持金を受信
-        socket.on("initialStockData", (data) => {
-            console.log("✅ 初期データを受信");
-            console.log("受信したデータ:", data);
-            console.log("株価データ:", data.stockData?.length, "件");
-            console.log("所持金:", data.money);
-            console.log("保有株数:", data.holding);
-            
-            if (data.stockData) {
-                setStockData(data.stockData);
-            }
-            if (data.money !== undefined && data.money !== null) {
-                setMoney(data.money);
-                console.log("✅ 所持金を設定:", data.money);
-            } else {
-                console.error("❌ 所持金がundefinedまたはnull");
-            }
-
-            if (data.holding !== undefined && data.holding !== null) {
-                setHolding(data.holding);
-                console.log("✅ 保有株数を設定:", data.holding);
-            } else {
-                console.error("❌ 保有株数がundefinedまたはnull");
-            }
+        client.connection.on(({ current }) => {
+            setStatus(current);
+            console.log("📡 接続状態:", current);
         });
 
-        // 株価データの更新を受信
-        socket.on("stockDataUpdated", (data) => {
-            const updateType = data.isAuto ? "🤖 自動変動" : "👤 手動変動";
-            console.log(`✅ 株価データ更新 [${updateType}]`);
-            if (data.changeAmount) {
-                console.log(`変動額: ${data.changeAmount > 0 ? '+' : ''}${data.changeAmount}`);
+        client.connection.once("connected", async () => {
+            const channelName = `rooms:${roomU}`;
+            const ch = client.channels.get(channelName);
+            chRef.current = ch;
+
+            await ch.attach();
+            console.log("✅ チャンネル接続完了:", channelName);
+
+            // Presenceに参加（プレイヤーデータ付き）
+            await ch.presence.enter({
+                name: clientId,
+                money: INITIAL_MONEY,
+                holding: INITIAL_HOLDING,
+            });
+
+            // 既存のプレイヤー情報を取得
+            await refreshPlayers();
+
+            // Presenceの変更を監視
+            ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
+
+            // 株価初期化（ホストのみ）
+            const members = await ch.presence.get();
+            const ids = members.map(m => m.clientId).sort();
+            const isHost = ids[0] === clientId;
+
+            if (isHost) {
+                console.log("👑 ホストとして株価データを初期化");
+                const seed = Date.now();
+                const initialData = generateStockData(seed);
+                setStockData(initialData);
+                
+                // 他のプレイヤーに初期データを送信
+                await ch.publish("stock-init", {
+                    seed,
+                    data: initialData,
+                    by: clientId,
+                });
+
+                // 自動変動開始（ホストのみ）
+                startAutoUpdate(ch, initialData);
             }
-            setStockData([...data.stockData]);
-        });
 
-        // 保有株数更新を受信
-        socket.on('holdingsUpdated', (data) => {
-            console.log("✅ 保有株数更新を受信:", data);
-            setHolding(data.holding);
+            // イベント購読
+            ch.subscribe("stock-init", (msg) => {
+                console.log("📊 株価データ受信");
+                setStockData(msg.data.data);
+            });
 
-            if (data.message) {
-                setError(data.message);
-                setTimeout(() => setError(""), 3000);
+            ch.subscribe("stock-update", (msg) => {
+                console.log("📈 株価更新:", msg.data.changeAmount);
+                setStockData(msg.data.stockData);
+            });
+
+            ch.subscribe("attack", async (msg) => {
+                if (msg.data.targetId === clientId) {
+                    console.log("⚔️ 攻撃を受けました:", msg.data.effectAmount);
+                    const newHolding = Math.max(0, holding + msg.data.effectAmount);
+                    setHolding(newHolding);
+                    
+                    // Presenceを更新
+                    await ch.presence.update({
+                        name: clientId,
+                        money,
+                        holding: newHolding,
+                    });
+
+                    setError(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
+                    setTimeout(() => setError(""), 3000);
+                }
+            });
+
+            async function refreshPlayers() {
+                const mem = await ch.presence.get();
+                const players = {};
+                mem.forEach(m => {
+                    players[m.clientId] = {
+                        name: m.data?.name || m.clientId,
+                        money: m.data?.money || INITIAL_MONEY,
+                        holding: m.data?.holding || INITIAL_HOLDING,
+                    };
+                });
+                setAllPlayers(players);
+                console.log("👥 プレイヤー情報更新:", Object.keys(players).length, "人");
             }
-        });
-
-        // 全プレイヤーの情報更新
-        socket.on('allPlayersUpdate', (data) => {
-            console.log("✅ 全プレイヤー情報更新:", data);
-            setAllPlayers(data.holdings);
-        });
-
-        // 攻撃成功
-        socket.on('attackSuccess', (data) => {
-            console.log("✅ 攻撃成功:", data);
-            if (data.message) {
-                setError(`✅ ${data.message}`);
-                setTimeout(() => setError(""), 3000);
-            }
-        });
-
-        // 攻撃失敗
-        socket.on('attackFailed', (data) => {
-            console.log("❌ 攻撃失敗:", data);
-            if (data.message) {
-                setError(`❌ ${data.message}`);
-                setTimeout(() => setError(""), 3000);
-            }
-        });
-
-        socket.on("opponentDisconnected", () => {
-            setError("対戦相手が切断しました");
-        });
-
-        socket.on("connect_error", (err) => {
-            console.error("❌ 接続エラー:", err);
-            setError("サーバーへの接続に失敗しました");
         });
 
         return () => {
-            console.log("クリーンアップ: イベントリスナー削除");
-            socket.off("initialStockData");
-            socket.off("stockDataUpdated");
-            socket.off("holdingsUpdated");
-            socket.off("allPlayersUpdate");
-            socket.off("attackSuccess");
-            socket.off("attackFailed");
-            socket.off("opponentDisconnected");
-            socket.off("connect_error");
+            console.log("🧹 クリーンアップ");
+            if (autoTimerRef.current) {
+                clearInterval(autoTimerRef.current);
+            }
+            try { chRef.current?.unsubscribe(); } catch {}
+            try { chRef.current?.presence.leave(); } catch {}
+            
+            const doClose = () => { try { clientRef.current?.close(); } catch {} };
+            if (navigatingRef.current) setTimeout(doClose, 200);
+            else doClose();
         };
-    }, [router]);
+    }, [router, clientId, holding, money]);
+
+    // 自動変動を開始（ホストのみ）
+    const startAutoUpdate = (ch, initialData) => {
+        if (autoTimerRef.current) return;
+
+        let currentData = [...initialData];
+
+        autoTimerRef.current = setInterval(async () => {
+            const lastPrice = currentData[currentData.length - 1].price;
+            const changeAmount = Math.floor((Math.random() - 0.5) * 600);
+            const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
+
+            // データ更新
+            currentData[currentData.length - 1] = {
+                ...currentData[currentData.length - 1],
+                price: newPrice,
+                volume: Math.floor(Math.random() * 100000000) + 50000000
+            };
+
+            if (currentData.length >= 180) {
+                currentData.shift();
+                const lastDate = new Date(currentData[currentData.length - 1].date);
+                lastDate.setDate(lastDate.getDate() + 1);
+
+                currentData.push({
+                    date: lastDate.toISOString().split('T')[0],
+                    price: newPrice,
+                    volume: Math.floor(Math.random() * 100000000) + 50000000
+                });
+            }
+
+            setStockData([...currentData]);
+
+            // 全員に送信
+            try {
+                await ch.publish("stock-update", {
+                    stockData: currentData,
+                    changeAmount,
+                    isAuto: true,
+                });
+                console.log("🤖 自動変動送信:", changeAmount);
+            } catch (e) {
+                console.error("❌ 自動変動送信失敗:", e);
+            }
+        }, AUTO_UPDATE_INTERVAL);
+    };
 
     // 株価変動ボタンクリック処理
-    const handleButtonClick = (changeAmount) => {
-        console.log("🔘 ボタンクリック:", changeAmount);
-        
-        if (socket.connected && roomNumber) {
-            const payload = {
-                roomNumber: roomNumber,
-                changeAmount: changeAmount
-            };
-            console.log("📤 changeStockPrice送信:", payload);
-            
-            socket.emit("changeStockPrice", payload);
-            console.log(`✅ リクエスト送信完了`);
-        } else {
-            console.error("❌ 送信失敗");
-            setError("接続が確立されていません");
+    const handleButtonClick = async (changeAmount) => {
+        if (!chRef.current || stockData.length === 0) return;
+
+        console.log("🔘 手動変動:", changeAmount);
+
+        const lastPrice = stockData[stockData.length - 1].price;
+        const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
+
+        const newData = [...stockData];
+        newData[newData.length - 1] = {
+            ...newData[newData.length - 1],
+            price: newPrice,
+            volume: Math.floor(Math.random() * 100000000) + 50000000
+        };
+
+        if (newData.length >= 180) {
+            newData.shift();
+            const lastDate = new Date(newData[newData.length - 1].date);
+            lastDate.setDate(lastDate.getDate() + 1);
+
+            newData.push({
+                date: lastDate.toISOString().split('T')[0],
+                price: newPrice,
+                volume: Math.floor(Math.random() * 100000000) + 50000000
+            });
+        }
+
+        setStockData(newData);
+
+        try {
+            await chRef.current.publish("stock-update", {
+                stockData: newData,
+                changeAmount,
+                isAuto: false,
+            });
+            console.log("✅ 手動変動送信完了");
+        } catch (e) {
+            console.error("❌ 手動変動送信失敗:", e);
+            setError("株価変動の送信に失敗しました");
         }
     };
 
     // 攻撃ボタンの処理
-    const handleAttack = (effectAmount) => {
-        console.log("⚔️ 攻撃ボタン:", effectAmount, "ターゲット:", selectedTarget);
+    const handleAttack = async (effectAmount) => {
+        if (!chRef.current) return;
+
+        const otherPlayers = Object.keys(allPlayers).filter(id => id !== clientId);
         
-        // ターゲット選択必須（2人以上の場合）
-        const otherPlayers = Object.keys(allPlayers).filter(id => id !== socket.id);
         if (otherPlayers.length >= 1 && !selectedTarget) {
-            setError(`❌ ターゲットを選択してください`);
+            setError("❌ ターゲットを選択してください");
             setTimeout(() => setError(""), 3000);
             return;
         }
-        
-        if (socket.connected && roomNumber) {
-            const payload = {
-                roomNumber: roomNumber,
-                effectAmount: effectAmount,
-                targetId: selectedTarget // ターゲットIDを送信
-            };
-            console.log("📤 attackPlayer送信:", payload);
-            socket.emit("attackPlayer", payload);
-            console.log("✅ リクエスト送信完了");
-        } else {
-            console.error("❌ 送信失敗");
-            setError("接続が確立されていません");
+
+        console.log("⚔️ 攻撃:", effectAmount, "ターゲット:", selectedTarget);
+
+        try {
+            await chRef.current.publish("attack", {
+                targetId: selectedTarget || otherPlayers[0],
+                effectAmount,
+                attackerId: clientId,
+            });
+
+            setError(`✅ 攻撃成功！相手の株を ${Math.abs(effectAmount)} 株減らしました`);
+            setTimeout(() => setError(""), 3000);
+        } catch (e) {
+            console.error("❌ 攻撃送信失敗:", e);
+            setError("攻撃の送信に失敗しました");
         }
     };
 
@@ -189,8 +318,17 @@ const Game = () => {
 
     // 他のプレイヤーのリスト取得
     const otherPlayers = Object.keys(allPlayers)
-        .filter(id => id !== socket.id)
-        .map(id => ({ id, holding: allPlayers[id] }));
+        .filter(id => id !== clientId)
+        .map(id => ({
+            id,
+            name: allPlayers[id].name,
+            holding: allPlayers[id].holding
+        }));
+
+    const statusBadge = 
+        status === "connected" ? { text: "接続中", color: "#10b981" } :
+        status === "connecting" ? { text: "接続中...", color: "#f59e0b" } :
+        { text: "切断", color: "#ef4444" };
 
     return (
         <div style={{ 
@@ -200,15 +338,27 @@ const Game = () => {
             padding: '32px' 
         }}>
             <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                <h1 style={{ 
-                    textAlign: 'center', 
-                    marginBottom: '24px', 
-                    fontSize: '32px', 
-                    fontWeight: 'bold',
-                    color: '#111827'
-                }}>
-                    株価ゲーム 📈
-                </h1>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+                    <h1 style={{ 
+                        textAlign: 'center', 
+                        fontSize: '32px', 
+                        fontWeight: 'bold',
+                        color: '#111827',
+                        margin: 0
+                    }}>
+                        株価ゲーム 📈
+                    </h1>
+                    <span style={{
+                        background: statusBadge.color,
+                        color: '#fff',
+                        padding: '6px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                    }}>
+                        {statusBadge.text}
+                    </span>
+                </div>
 
                 {error && (
                     <div style={{
@@ -245,7 +395,7 @@ const Game = () => {
                             fontWeight: 'bold',
                             color: '#111827'
                         }}>
-                            🎯 ターゲット選択 (必須)
+                            🎯 ターゲット選択 {otherPlayers.length >= 2 && "(必須)"}
                         </h2>
                         <div style={{
                             display: 'grid',
@@ -267,7 +417,7 @@ const Game = () => {
                                     }}
                                 >
                                     <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-                                        👤 プレイヤー {index + 1}
+                                        👤 {player.name}
                                     </div>
                                     <div style={{ color: '#6b7280', fontSize: '14px' }}>
                                         ID: {player.id.substring(0, 8)}...
@@ -287,14 +437,18 @@ const Game = () => {
                 )}
 
                 {/* コントロールボタン */}
-                <ControlButtons onButtonClick={handleButtonClick} />
+                {stockData.length > 0 && (
+                    <ControlButtons onButtonClick={handleButtonClick} />
+                )}
 
                 {/* 攻撃ボタン */}
-                <CardList 
-                    onButtonClick={handleAttack}
-                    selectedTarget={selectedTarget}
-                    hasTargets={otherPlayers.length >= 1}
-                />
+                {otherPlayers.length > 0 && (
+                    <CardList 
+                        onButtonClick={handleAttack}
+                        selectedTarget={selectedTarget}
+                        hasTargets={otherPlayers.length >= 1}
+                    />
+                )}
             </div>
         </div>
     );
