@@ -258,6 +258,17 @@ const Game = () => {
             const changeAmount = Math.floor((Math.random() - 0.5) * 600);
             const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
+            const lastDate = new Date(currentData[currentData.length - 1].date);
+            lastDate.setDate(lastDate.getDate() + 10);
+
+            const newPoint = {
+                date: lastDate.toISOString(),
+                price: newPrice,
+                volume: Math.floor(Math.random() * 100000000) + 50000000
+            };
+
+
+
             currentData[currentData.length - 1] = {
                 ...currentData[currentData.length - 1],
                 price: newPrice,
@@ -265,15 +276,9 @@ const Game = () => {
             };
 
             if (currentData.length >= 180) {
-                currentData.shift();
-                const lastDate = new Date(currentData[currentData.length - 1].date);
-                lastDate.setDate(lastDate.getDate() + 1);
-
-                currentData.push({
-                    date: lastDate.toISOString().split('T')[0],
-                    price: newPrice,
-                    volume: Math.floor(Math.random() * 100000000) + 50000000
-                });
+                currentData = [...currentData.slice(1), newPoint];
+            } else {
+                currentDate = [...currentData, newPoint];
             }
 
             setStockData([...currentData]);
