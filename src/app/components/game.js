@@ -7,10 +7,14 @@ import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import ControlButtons from "./ControlButtons";
 import CardList from "./card";
+import GameTimer from "./GameTimer";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 10000;
+const AUTO_UPDATE_INTERVAL = 10000; 
+const GAME_DURATION = 300; // ⭐ ゲーム時間（秒）デフォルト5分
+const INITIAL_HAND_SIZE = 3
+const MAX_HAND_SIZE = 8;
 
 function generateStockData(seed = Date.now()) {
     const data = [];
@@ -58,7 +62,6 @@ const Game = () => {
     const navigatingRef = useRef(false);
     const initializedRef = useRef(false);
 
-    // 最新のholding値を常に参照できるようにRefで保持
     const holdingRef = useRef(holding);
     const moneyRef = useRef(money);
     
@@ -80,7 +83,6 @@ const Game = () => {
         return roomNumber.toUpperCase();
     }, [roomNumber]);
 
-    // Presence更新関数（useCallbackで安定化）
     const updatePresence = useCallback(async (newMoney, newHolding) => {
         if (!chRef.current) return;
         
@@ -117,7 +119,7 @@ const Game = () => {
 
         const client = new Ably.Realtime.Promise({
             authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
-            closeOnUnload: false, // ページ遷移時の自動切断を無効化
+            closeOnUnload: false,
         });
         clientRef.current = client;
 
@@ -177,16 +179,13 @@ const Game = () => {
                 if (msg.data.targetId === clientId) {
                     console.log("⚔️ 攻撃を受けました:", msg.data.effectAmount);
                     
-                    // Refから最新値を取得
                     const currentHolding = holdingRef.current;
                     const currentMoney = moneyRef.current;
                     
                     const newHolding = Math.max(0, currentHolding + msg.data.effectAmount);
                     
-                    // State更新
                     setHolding(newHolding);
                     
-                    // Presence更新を遅延実行（State更新後）
                     setTimeout(() => {
                         updatePresence(currentMoney, newHolding);
                     }, 50);
@@ -248,6 +247,7 @@ const Game = () => {
         };
     }, [roomU, clientId, router, updatePresence]);
 
+    // ⭐ 自動更新ロジックを修正
     const startAutoUpdate = (ch, initialData) => {
         if (autoTimerRef.current) return;
 
@@ -258,8 +258,9 @@ const Game = () => {
             const changeAmount = Math.floor((Math.random() - 0.5) * 600);
             const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
+            // ⭐ 新しいデータポイントを追加（古いデータは削除）
             const lastDate = new Date(currentData[currentData.length - 1].date);
-            lastDate.setDate(lastDate.getDate() + 10);
+            lastDate.setSeconds(lastDate.getSeconds() + 2); // 2秒進める
 
             const newPoint = {
                 date: lastDate.toISOString(),
@@ -267,18 +268,11 @@ const Game = () => {
                 volume: Math.floor(Math.random() * 100000000) + 50000000
             };
 
-
-
-            currentData[currentData.length - 1] = {
-                ...currentData[currentData.length - 1],
-                price: newPrice,
-                volume: Math.floor(Math.random() * 100000000) + 50000000
-            };
-
+            // 最大180ポイントを保持
             if (currentData.length >= 180) {
                 currentData = [...currentData.slice(1), newPoint];
             } else {
-                currentDate = [...currentData, newPoint];
+                currentData = [...currentData, newPoint];
             }
 
             setStockData([...currentData]);
@@ -289,7 +283,7 @@ const Game = () => {
                     changeAmount,
                     isAuto: true,
                 });
-                console.log("🤖 自動変動送信:", changeAmount);
+                console.log("🤖 自動変動送信:", changeAmount, "→", newPrice);
             } catch (e) {
                 console.error("❌ 自動変動送信失敗:", e);
             }
