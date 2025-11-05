@@ -6,11 +6,22 @@ import Ably from "ably";
 import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import ControlButtons from "./ControlButtons";
-import CardList from "./card";
+import GameTimer from "./GameTimer";
+import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
+import Hand from "./Hand";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 10000;
+const AUTO_UPDATE_INTERVAL = 10000; 
+const GAME_DURATION = 300;
+
+function getInitialHand() {
+    return [
+        { id: CARD_TYPES.REDUCE_HOLDINGS_SMALL },
+        { id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM },
+        { id: CARD_TYPES.REDUCE_HOLDINGS_LARGE },
+    ];
+}
 
 function generateStockData(seed = Date.now()) {
     const data = [];
@@ -50,6 +61,7 @@ const Game = () => {
     const [allPlayers, setAllPlayers] = useState({});
     const [selectedTarget, setSelectedTarget] = useState(null);
     const [status, setStatus] = useState("connecting");
+    const [hand, setHand] = useState(getInitialHand());
 
     // Refs
     const clientRef = useRef(null);
@@ -57,8 +69,6 @@ const Game = () => {
     const autoTimerRef = useRef(null);
     const navigatingRef = useRef(false);
     const initializedRef = useRef(false);
-
-    // 最新のholding値を常に参照できるようにRefで保持
     const holdingRef = useRef(holding);
     const moneyRef = useRef(money);
     
@@ -80,7 +90,6 @@ const Game = () => {
         return roomNumber.toUpperCase();
     }, [roomNumber]);
 
-    // Presence更新関数（useCallbackで安定化）
     const updatePresence = useCallback(async (newMoney, newHolding) => {
         if (!chRef.current) return;
         
@@ -117,13 +126,18 @@ const Game = () => {
 
         const client = new Ably.Realtime.Promise({
             authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
-            closeOnUnload: false, // ページ遷移時の自動切断を無効化
+            closeOnUnload: false,
         });
         clientRef.current = client;
 
         client.connection.on(({ current }) => {
             setStatus(current);
             console.log("📡 接続状態:", current);
+            
+            // 接続エラー時の処理
+            if (current === "failed" || current === "suspended") {
+                setError("⚠️ 接続が切断されました。ページを再読み込みしてください。");
+            }
         });
 
         client.connection.once("connected", async () => {
@@ -173,26 +187,33 @@ const Game = () => {
                 setStockData(msg.data.stockData);
             });
 
-            ch.subscribe("attack", async (msg) => {
-                if (msg.data.targetId === clientId) {
-                    console.log("⚔️ 攻撃を受けました:", msg.data.effectAmount);
-                    
-                    // Refから最新値を取得
-                    const currentHolding = holdingRef.current;
-                    const currentMoney = moneyRef.current;
-                    
-                    const newHolding = Math.max(0, currentHolding + msg.data.effectAmount);
-                    
-                    // State更新
-                    setHolding(newHolding);
-                    
-                    // Presence更新を遅延実行（State更新後）
-                    setTimeout(() => {
-                        updatePresence(currentMoney, newHolding);
-                    }, 50);
+            // カード使用イベントの購読
+            ch.subscribe("card-used", async (msg) => {
+                const { cardId, playerId, targetId } = msg.data;
+                console.log("🃏 カード使用受信:", cardId, "by", playerId);
 
-                    setError(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
-                    setTimeout(() => setError(""), 3000);
+                // 自分がターゲットの場合、効果を適用
+                if (targetId === clientId) {
+                    const snapshot = {
+                        ...allPlayers,
+                        [clientId]: {
+                            ...(allPlayers[clientId] ?? { name: clientId,  money: moneyRef.current }),
+                            holding: holdingRef.current,
+                        },
+                    };
+                    const result = executeCardEffect(cardId, { players: snapshot} , playerId, targetId);
+
+                    if (result.success && result.needsSync) {
+                        const newHolding = result.gameState.players[clientId].holding;
+                        setHolding(newHolding);
+                        
+                        setTimeout(() => {
+                            updatePresence(moneyRef.current, newHolding);
+                        }, 50);
+
+                        setError(`⚔️ ${CARD_DEFINITIONS[cardId]?.name}を受けました！`);
+                        setTimeout(() => setError(""), 3000);
+                    }
                 }
             });
 
@@ -212,39 +233,54 @@ const Game = () => {
         });
 
         return () => {
-            console.log("🧹 クリーンアップ");
+            console.log("🧹 クリーンアップ開始");
+            
+            // タイマー停止
             if (autoTimerRef.current) {
                 clearInterval(autoTimerRef.current);
+                autoTimerRef.current = null;
             }
             
+            // 非同期クリーンアップ
             const cleanup = async () => {
                 try {
                     if (chRef.current) {
+                        console.log("📤 Presenceから退出中...");
                         chRef.current.unsubscribe();
-                        await chRef.current.presence.leave();
+                        
+                        // Presenceからの退出を試みる（エラーを無視）
+                        try {
+                            await Promise.race([
+                                chRef.current.presence.leave(),
+                                new Promise((_, reject) => 
+                                    setTimeout(() => reject(new Error("timeout")), 1000)
+                                )
+                            ]);
+                        } catch (e) {
+                            console.warn("Presence退出タイムアウト:", e);
+                        }
                     }
                 } catch (e) {
-                    console.warn("クリーンアップ中のエラー:", e);
+                    console.warn("チャンネルクリーンアップエラー:", e);
                 }
                 
-                const doClose = () => {
-                    try {
-                        if (clientRef.current) {
-                            clientRef.current.close();
-                        }
-                    } catch (e) {
-                        console.warn("接続クローズ中のエラー:", e);
+                // 接続クローズ
+                try {
+                    if (clientRef.current?.connection?.state === "connected") {
+                        console.log("🔌 Ably接続をクローズ中...");
+                        clientRef.current.close();
                     }
-                };
-                
-                if (navigatingRef.current) {
-                    setTimeout(doClose, 200);
-                } else {
-                    doClose();
+                } catch (e) {
+                    console.warn("接続クローズエラー:", e);
                 }
             };
             
-            cleanup();
+            // 遷移中なら少し待ってからクローズ
+            if (navigatingRef.current) {
+                setTimeout(cleanup, 300);
+            } else {
+                cleanup();
+            }
         };
     }, [roomU, clientId, router, updatePresence]);
 
@@ -259,7 +295,7 @@ const Game = () => {
             const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
             const lastDate = new Date(currentData[currentData.length - 1].date);
-            lastDate.setDate(lastDate.getDate() + 10);
+            lastDate.setSeconds(lastDate.getSeconds() + 2);
 
             const newPoint = {
                 date: lastDate.toISOString(),
@@ -267,18 +303,10 @@ const Game = () => {
                 volume: Math.floor(Math.random() * 100000000) + 50000000
             };
 
-
-
-            currentData[currentData.length - 1] = {
-                ...currentData[currentData.length - 1],
-                price: newPrice,
-                volume: Math.floor(Math.random() * 100000000) + 50000000
-            };
-
             if (currentData.length >= 180) {
                 currentData = [...currentData.slice(1), newPoint];
             } else {
-                currentDate = [...currentData, newPoint];
+                currentData = [...currentData, newPoint];
             }
 
             setStockData([...currentData]);
@@ -289,7 +317,7 @@ const Game = () => {
                     changeAmount,
                     isAuto: true,
                 });
-                console.log("🤖 自動変動送信:", changeAmount);
+                console.log("🤖 自動変動送信:", changeAmount, "→", newPrice);
             } catch (e) {
                 console.error("❌ 自動変動送信失敗:", e);
             }
@@ -338,32 +366,38 @@ const Game = () => {
         }
     };
 
-    const handleAttack = async (effectAmount) => {
-        if (!chRef.current) return;
+    const handlePlayCard = async (cardIndex) => {
+        if (!chRef.current || cardIndex < 0 || cardIndex >= hand.length) return;
+
+        const card = hand[cardIndex];
+        const cardDef = CARD_DEFINITIONS[card.id];
 
         const otherPlayers = Object.keys(allPlayers).filter(id => id !== clientId);
-        
-        if (otherPlayers.length >= 1 && !selectedTarget) {
+        if (cardDef.needsTarget && otherPlayers.length >= 1 && !selectedTarget) {
             setError("❌ ターゲットを選択してください");
             setTimeout(() => setError(""), 3000);
             return;
         }
 
         const targetId = selectedTarget || otherPlayers[0];
-        console.log("⚔️ 攻撃:", effectAmount, "ターゲット:", targetId);
+
+        console.log("🃏 カード使用:", card.id, "ターゲット:", targetId);
 
         try {
-            await chRef.current.publish("attack", {
+            await chRef.current.publish("card-used", {
+                cardId: card.id,
+                playerId: clientId,
                 targetId,
-                effectAmount,
-                attackerId: clientId,
+                timestamp: Date.now(),
             });
 
-            setError(`✅ 攻撃成功！${allPlayers[targetId]?.name || targetId} の株を ${Math.abs(effectAmount)} 株減らしました`);
+            setHand(prev => prev.filter((_, i) => i !== cardIndex));
+
+            setError(`✅ ${cardDef.name}を使用しました！`);
             setTimeout(() => setError(""), 3000);
         } catch (e) {
-            console.error("❌ 攻撃送信失敗:", e);
-            setError("攻撃の送信に失敗しました");
+            console.error("❌ カード使用送信失敗:", e);
+            setError("カード使用の送信に失敗しました");
         }
     };
 
@@ -492,13 +526,11 @@ const Game = () => {
                     <ControlButtons onButtonClick={handleButtonClick} />
                 )}
 
-                {otherPlayers.length > 0 && (
-                    <CardList 
-                        onButtonClick={handleAttack}
-                        selectedTarget={selectedTarget}
-                        hasTargets={otherPlayers.length >= 1}
-                    />
-                )}
+                <Hand
+                    hand={hand}
+                    onPlay={handlePlayCard}
+                    maxHand={8}
+                />
             </div>
         </div>
     );
