@@ -8,10 +8,12 @@ import PlayerInfo from "./PlayerInfo";
 import ControlButtons from "./ControlButtons";
 import CardList from "./card";
 
+// 初期値の定義
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000;
 
+// 株価データ生成関数
 function generateStockData(seed = Date.now()) {
     const data = [];
     let price = 15000;
@@ -39,6 +41,82 @@ function generateStockData(seed = Date.now()) {
     return data;
 }
 
+// サイドバーコンポーネント
+function SideBar({ side, open, onToggle, width, title, children }) {
+  const isLeft = side === "left";
+  return (
+    <aside
+      style={{
+        position: "fixed",
+        top: 0,
+        bottom: 0,
+        [isLeft ? "left" : "right"]: 0,
+        width,
+        transform: `translateX(${open ? "0%" : isLeft ? "-95%" : "95%"})`,
+        transition: "transform .25s ease",
+        background: "#ffffff",
+        borderLeft: isLeft ? "none" : "1px solid #e5e7eb",
+        borderRight: isLeft ? "1px solid #e5e7eb" : "none",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+        padding: "16px 16px 16px",
+        zIndex: 40,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <button
+        onClick={onToggle}
+        style={{
+          position: "absolute",
+          top: 80,
+          [isLeft ? "right" : "left"]: -28,
+          width: 28,
+          height: 56,
+          borderRadius: "0 8px 8px 0",
+          background: "#fff",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
+          cursor: "pointer",
+        }}
+      >
+        {isLeft ? (open ? "◀" : "▶") : (open ? "▶" : "◀")}
+      </button>
+      <div style={{ fontWeight: 800, color: "#111827" }}>{title}</div>
+      <div>{children}</div>
+    </aside>
+  );
+}
+
+// ログコンポーネント
+function Log({ log = [] }) {
+  return (
+    <div
+      style={{
+        background: "#ffffff", // 背景色を白に変更
+        border: "1px solid #2a2a2a",
+        borderRadius: 12,
+        padding: 10,
+        height: 300, // 高さを300pxに変更
+        color: "#000000", // ログの文章を黒に変更
+        overflow: "auto",
+      }}
+    >
+      {log.length === 0 ? (
+        <div style={{ opacity: 0.6, fontSize: 12 }}>ログはまだありません</div>
+      ) : (
+        log
+          .slice()
+          .reverse()
+          .map((l, i) => (
+            <div key={i} style={{ fontSize: 12, lineHeight: 1.4 }}>
+              {l}
+            </div>
+          ))
+      )}
+    </div>
+  );
+}
+
 const Game = () => {
     const router = useRouter();
     
@@ -50,6 +128,27 @@ const Game = () => {
     const [allPlayers, setAllPlayers] = useState({});
     const [selectedTarget, setSelectedTarget] = useState(null);
     const [status, setStatus] = useState("connecting");
+
+    // ログの状態管理
+    const [logs, setLogs] = useState([]);
+
+    // サイドバーの開閉状態
+    const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+
+    // サイドバーのトグル処理
+    const handleLeftSidebarToggle = () => {
+        setIsLeftSidebarOpen(!isLeftSidebarOpen);
+    };
+
+    const handleRightSidebarToggle = () => {
+        setIsRightSidebarOpen(!isRightSidebarOpen);
+    };
+
+    // ログ更新関数
+    const addLog = (message) => {
+        setLogs((prevLogs) => [...prevLogs, message]);
+    };
 
     // Refs
     const clientRef = useRef(null);
@@ -140,6 +239,9 @@ const Game = () => {
                 holding: INITIAL_HOLDING,
             });
 
+            // 対戦開始のログを流す
+            addLog("🎮 対戦が開始されました！");
+
             await refreshPlayers();
 
             ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
@@ -171,6 +273,13 @@ const Game = () => {
             ch.subscribe("stock-update", (msg) => {
                 console.log("📈 株価更新:", msg.data.changeAmount);
                 setStockData(msg.data.stockData);
+
+                // 株価の増減をログに追加
+                const changeMessage = msg.data.changeAmount > 0
+                    ? `株価が${Math.abs(msg.data.changeAmount)}円上昇しました`
+                    : `株価が${Math.abs(msg.data.changeAmount)}円下降しました`;
+
+                addLog(changeMessage); // 株価変動のログを追加
             });
 
             ch.subscribe("attack", async (msg) => {
@@ -191,7 +300,8 @@ const Game = () => {
                         updatePresence(currentMoney, newHolding);
                     }, 50);
 
-                    setError(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
+                    addLog(`⚔️ 攻撃を受けました！保有株が ${Math.abs(msg.data.effectAmount)} 株減少`);
+
                     setTimeout(() => setError(""), 3000);
                 }
             });
@@ -267,8 +377,6 @@ const Game = () => {
                 volume: Math.floor(Math.random() * 100000000) + 50000000
             };
 
-
-
             currentData[currentData.length - 1] = {
                 ...currentData[currentData.length - 1],
                 price: newPrice,
@@ -278,7 +386,7 @@ const Game = () => {
             if (currentData.length >= 180) {
                 currentData = [...currentData.slice(1), newPoint];
             } else {
-                currentDate = [...currentData, newPoint];
+                currentData = [...currentData, newPoint];
             }
 
             setStockData([...currentData]);
@@ -325,6 +433,13 @@ const Game = () => {
 
         setStockData(newData);
 
+        // 株価の増減をログに追加
+        const changeMessage = changeAmount > 0
+            ? `株価が${Math.abs(changeAmount)}円上昇しました`
+            : `株価が${Math.abs(changeAmount)}円下降しました`;
+
+        addLog(changeMessage); // 株価変動のログを追加
+
         try {
             await chRef.current.publish("stock-update", {
                 stockData: newData,
@@ -359,7 +474,7 @@ const Game = () => {
                 attackerId: clientId,
             });
 
-            setError(`✅ 攻撃成功！${allPlayers[targetId]?.name || targetId} の株を ${Math.abs(effectAmount)} 株減らしました`);
+            addLog(`✅ 攻撃成功！${allPlayers[targetId]?.name || targetId} の株を ${Math.abs(effectAmount)} 株減らしました`);
             setTimeout(() => setError(""), 3000);
         } catch (e) {
             console.error("❌ 攻撃送信失敗:", e);
@@ -500,6 +615,36 @@ const Game = () => {
                     />
                 )}
             </div>
+            
+            {/* 左サイドバー */}
+            <SideBar
+                side="left"
+                open={isLeftSidebarOpen}
+                onToggle={handleLeftSidebarToggle}
+                width="300px"
+                title="プレイヤー情報"
+            >
+                <div>プレイヤー情報やターゲット選択など</div>
+            </SideBar>
+
+            {/* 右サイドバー */}
+            <SideBar
+                side="right"
+                open={isRightSidebarOpen}
+                onToggle={handleRightSidebarToggle}
+                width="300px"
+                title="ログ / ユーザー一覧"
+            >
+                <Log log={logs} />
+                <div style={{ fontWeight: 'bold', marginTop: '20px' }}>ユーザー一覧</div>
+                <div>
+                    {Object.values(allPlayers).map(player => (
+                        <div key={player.name} style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                            {player.name} - 保有株: {player.holding}株
+                        </div>
+                    ))}
+                </div>
+            </SideBar>
         </div>
     );
 };
