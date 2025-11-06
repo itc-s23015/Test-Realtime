@@ -7,6 +7,7 @@ import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import ControlButtons from "./ControlButtons";
 import CardList from "./card";
+import OrderBoard from './OrderBoard';  // 注文板コンポーネントをインポート
 
 // --------- 定数 ----------
 const INITIAL_MONEY = 100000;
@@ -14,7 +15,6 @@ const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000; // 価格自動変動
 const ATB_MAX = 100;
 
-// チャート用ダミーデータ生成（既存から）
 function generateStockData(seed = Date.now()) {
   const data = [];
   let price = 15000;
