@@ -12,7 +12,7 @@ import Hand from "./Hand";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 2000; // 10秒ごとに自動変動
+const AUTO_UPDATE_INTERVAL = 2000; // 2秒ごとに自動変動
 const GAME_DURATION = 300;
 
 function generateStockData(seed = Date.now()) {
@@ -118,14 +118,14 @@ const Game = () => {
         setRoomNumber(room.toUpperCase());
     }, [router]);
 
-    // 修正: 自動更新ロジック
+    // 🔧 修正: 最新の価格だけを更新（日付は変えない）
     const startAutoUpdate = useCallback((ch, initialData) => {
         if (autoTimerRef.current) {
             console.log("⚠️ 既に自動更新タイマーが起動しています");
             return;
         }
 
-        console.log("🤖 自動更新タイマーを開始します (10秒間隔)");
+        console.log("🤖 自動更新タイマーを開始します (2秒間隔)");
         let currentData = [...initialData];
 
         autoTimerRef.current = setInterval(async () => {
@@ -133,23 +133,15 @@ const Game = () => {
             const changeAmount = Math.floor((Math.random() - 0.5) * 600);
             const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
-            // 🔧 修正: 日付を正しく進める（前回の日付から+1日）
-            const lastDateStr = currentData[currentData.length - 1].date;
-            const lastDate = new Date(lastDateStr);
-            lastDate.setDate(lastDate.getDate() + 1); // 1日進める
-
-            const newPoint = {
-                date: lastDate.toISOString().split('T')[0], // YYYY-MM-DD形式
+            // 🔧 修正: 最後のデータポイントの価格だけを更新
+            const updatedData = [...currentData];
+            updatedData[updatedData.length - 1] = {
+                ...updatedData[updatedData.length - 1],
                 price: newPrice,
                 volume: Math.floor(Math.random() * 100000000) + 50000000
             };
 
-            // 最大180ポイントを維持（古いデータを削除）
-            if (currentData.length >= 180) {
-                currentData = [...currentData.slice(1), newPoint];
-            } else {
-                currentData = [...currentData, newPoint];
-            }
+            currentData = updatedData;
 
             // ローカル状態を更新
             setStockData([...currentData]);
@@ -164,7 +156,7 @@ const Game = () => {
                 console.log("🤖 自動変動送信成功:", {
                     変動額: changeAmount,
                     新価格: newPrice,
-                    日付: newPoint.date,
+                    日付: updatedData[updatedData.length - 1].date,
                     データ数: currentData.length
                 });
             } catch (e) {
@@ -228,7 +220,6 @@ const Game = () => {
                     by: clientId,
                 });
 
-                // 🔧 修正: useCallbackで定義した関数を使用
                 startAutoUpdate(ch, initialData);
             }
 
@@ -337,6 +328,7 @@ const Game = () => {
         };
     }, [roomU, clientId, router, updatePresence, startAutoUpdate]);
 
+    // 🔧 修正: 手動変動も最新価格のみ更新
     const handleButtonClick = async (changeAmount) => {
         if (!chRef.current || stockData.length === 0) return;
 
@@ -345,7 +337,6 @@ const Game = () => {
         const lastPrice = stockData[stockData.length - 1].price;
         const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
-        // 🔧 修正: 最後のポイントを更新（日付はそのまま）
         const newData = [...stockData];
         newData[newData.length - 1] = {
             ...newData[newData.length - 1],
