@@ -12,16 +12,8 @@ import Hand from "./Hand";
 
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 10000; 
+const AUTO_UPDATE_INTERVAL = 2000; // 10秒ごとに自動変動
 const GAME_DURATION = 300;
-
-function getInitialHand() {
-    return [
-        { id: CARD_TYPES.REDUCE_HOLDINGS_SMALL },
-        { id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM },
-        { id: CARD_TYPES.REDUCE_HOLDINGS_LARGE },
-    ];
-}
 
 function generateStockData(seed = Date.now()) {
     const data = [];
@@ -48,6 +40,14 @@ function generateStockData(seed = Date.now()) {
         });
     }
     return data;
+}
+
+function getInitialHand() {
+    return [
+        { id: CARD_TYPES.REDUCE_HOLDINGS_SMALL },
+        { id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM },
+        { id: CARD_TYPES.REDUCE_HOLDINGS_LARGE },
+    ];
 }
 
 const Game = () => {
@@ -118,6 +118,61 @@ const Game = () => {
         setRoomNumber(room.toUpperCase());
     }, [router]);
 
+    // 修正: 自動更新ロジック
+    const startAutoUpdate = useCallback((ch, initialData) => {
+        if (autoTimerRef.current) {
+            console.log("⚠️ 既に自動更新タイマーが起動しています");
+            return;
+        }
+
+        console.log("🤖 自動更新タイマーを開始します (10秒間隔)");
+        let currentData = [...initialData];
+
+        autoTimerRef.current = setInterval(async () => {
+            const lastPrice = currentData[currentData.length - 1].price;
+            const changeAmount = Math.floor((Math.random() - 0.5) * 600);
+            const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
+
+            // 🔧 修正: 日付を正しく進める（前回の日付から+1日）
+            const lastDateStr = currentData[currentData.length - 1].date;
+            const lastDate = new Date(lastDateStr);
+            lastDate.setDate(lastDate.getDate() + 1); // 1日進める
+
+            const newPoint = {
+                date: lastDate.toISOString().split('T')[0], // YYYY-MM-DD形式
+                price: newPrice,
+                volume: Math.floor(Math.random() * 100000000) + 50000000
+            };
+
+            // 最大180ポイントを維持（古いデータを削除）
+            if (currentData.length >= 180) {
+                currentData = [...currentData.slice(1), newPoint];
+            } else {
+                currentData = [...currentData, newPoint];
+            }
+
+            // ローカル状態を更新
+            setStockData([...currentData]);
+
+            // Ablyで同期
+            try {
+                await ch.publish("stock-update", {
+                    stockData: currentData,
+                    changeAmount,
+                    isAuto: true,
+                });
+                console.log("🤖 自動変動送信成功:", {
+                    変動額: changeAmount,
+                    新価格: newPrice,
+                    日付: newPoint.date,
+                    データ数: currentData.length
+                });
+            } catch (e) {
+                console.error("❌ 自動変動送信失敗:", e);
+            }
+        }, AUTO_UPDATE_INTERVAL);
+    }, []);
+
     useEffect(() => {
         if (!roomU || !clientId || initializedRef.current) return;
         
@@ -134,7 +189,6 @@ const Game = () => {
             setStatus(current);
             console.log("📡 接続状態:", current);
             
-            // 接続エラー時の処理
             if (current === "failed" || current === "suspended") {
                 setError("⚠️ 接続が切断されました。ページを再読み込みしてください。");
             }
@@ -174,6 +228,7 @@ const Game = () => {
                     by: clientId,
                 });
 
+                // 🔧 修正: useCallbackで定義した関数を使用
                 startAutoUpdate(ch, initialData);
             }
 
@@ -183,25 +238,27 @@ const Game = () => {
             });
 
             ch.subscribe("stock-update", (msg) => {
-                console.log("📈 株価更新:", msg.data.changeAmount);
+                console.log("📈 株価更新受信:", {
+                    変動額: msg.data.changeAmount,
+                    自動: msg.data.isAuto,
+                    データ数: msg.data.stockData.length
+                });
                 setStockData(msg.data.stockData);
             });
 
-            // カード使用イベントの購読
             ch.subscribe("card-used", async (msg) => {
                 const { cardId, playerId, targetId } = msg.data;
                 console.log("🃏 カード使用受信:", cardId, "by", playerId);
 
-                // 自分がターゲットの場合、効果を適用
                 if (targetId === clientId) {
                     const snapshot = {
                         ...allPlayers,
                         [clientId]: {
-                            ...(allPlayers[clientId] ?? { name: clientId,  money: moneyRef.current }),
+                            ...(allPlayers[clientId] ?? { name: clientId, money: moneyRef.current }),
                             holding: holdingRef.current,
                         },
                     };
-                    const result = executeCardEffect(cardId, { players: snapshot} , playerId, targetId);
+                    const result = executeCardEffect(cardId, { players: snapshot }, playerId, targetId);
 
                     if (result.success && result.needsSync) {
                         const newHolding = result.gameState.players[clientId].holding;
@@ -235,20 +292,18 @@ const Game = () => {
         return () => {
             console.log("🧹 クリーンアップ開始");
             
-            // タイマー停止
             if (autoTimerRef.current) {
+                console.log("⏹️ 自動更新タイマー停止");
                 clearInterval(autoTimerRef.current);
                 autoTimerRef.current = null;
             }
             
-            // 非同期クリーンアップ
             const cleanup = async () => {
                 try {
                     if (chRef.current) {
                         console.log("📤 Presenceから退出中...");
                         chRef.current.unsubscribe();
                         
-                        // Presenceからの退出を試みる（エラーを無視）
                         try {
                             await Promise.race([
                                 chRef.current.presence.leave(),
@@ -264,7 +319,6 @@ const Game = () => {
                     console.warn("チャンネルクリーンアップエラー:", e);
                 }
                 
-                // 接続クローズ
                 try {
                     if (clientRef.current?.connection?.state === "connected") {
                         console.log("🔌 Ably接続をクローズ中...");
@@ -275,54 +329,13 @@ const Game = () => {
                 }
             };
             
-            // 遷移中なら少し待ってからクローズ
             if (navigatingRef.current) {
                 setTimeout(cleanup, 300);
             } else {
                 cleanup();
             }
         };
-    }, [roomU, clientId, router, updatePresence]);
-
-    const startAutoUpdate = (ch, initialData) => {
-        if (autoTimerRef.current) return;
-
-        let currentData = [...initialData];
-
-        autoTimerRef.current = setInterval(async () => {
-            const lastPrice = currentData[currentData.length - 1].price;
-            const changeAmount = Math.floor((Math.random() - 0.5) * 600);
-            const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
-
-            const lastDate = new Date(currentData[currentData.length - 1].date);
-            lastDate.setSeconds(lastDate.getSeconds() + 2);
-
-            const newPoint = {
-                date: lastDate.toISOString(),
-                price: newPrice,
-                volume: Math.floor(Math.random() * 100000000) + 50000000
-            };
-
-            if (currentData.length >= 180) {
-                currentData = [...currentData.slice(1), newPoint];
-            } else {
-                currentData = [...currentData, newPoint];
-            }
-
-            setStockData([...currentData]);
-
-            try {
-                await ch.publish("stock-update", {
-                    stockData: currentData,
-                    changeAmount,
-                    isAuto: true,
-                });
-                console.log("🤖 自動変動送信:", changeAmount, "→", newPrice);
-            } catch (e) {
-                console.error("❌ 自動変動送信失敗:", e);
-            }
-        }, AUTO_UPDATE_INTERVAL);
-    };
+    }, [roomU, clientId, router, updatePresence, startAutoUpdate]);
 
     const handleButtonClick = async (changeAmount) => {
         if (!chRef.current || stockData.length === 0) return;
@@ -332,24 +345,13 @@ const Game = () => {
         const lastPrice = stockData[stockData.length - 1].price;
         const newPrice = Math.round(Math.max(10000, Math.min(20000, lastPrice + changeAmount)));
 
+        // 🔧 修正: 最後のポイントを更新（日付はそのまま）
         const newData = [...stockData];
         newData[newData.length - 1] = {
             ...newData[newData.length - 1],
             price: newPrice,
             volume: Math.floor(Math.random() * 100000000) + 50000000
         };
-
-        if (newData.length >= 180) {
-            newData.shift();
-            const lastDate = new Date(newData[newData.length - 1].date);
-            lastDate.setDate(lastDate.getDate() + 1);
-
-            newData.push({
-                date: lastDate.toISOString().split('T')[0],
-                price: newPrice,
-                volume: Math.floor(Math.random() * 100000000) + 50000000
-            });
-        }
 
         setStockData(newData);
 
@@ -359,7 +361,7 @@ const Game = () => {
                 changeAmount,
                 isAuto: false,
             });
-            console.log("✅ 手動変動送信完了");
+            console.log("✅ 手動変動送信完了:", { 変動額: changeAmount, 新価格: newPrice });
         } catch (e) {
             console.error("❌ 手動変動送信失敗:", e);
             setError("株価変動の送信に失敗しました");

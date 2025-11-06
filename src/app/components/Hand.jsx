@@ -26,7 +26,7 @@ export default function Hand({
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
-        <div className={styles.title}>🃏 Your Hand</div>
+        <div className={styles.title}>🃏カード</div>
         <div className={styles.meta}>
           <span className={hand.length >= maxHand ? styles.warn : ""}>
             {hand.length}/{maxHand}
