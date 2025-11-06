@@ -34,7 +34,7 @@ export default function LobbyClient({ room }: { room: string }) {
 
   // Ably 接続（1回のみ）
   useEffect(() => {
-    if (clientRef.current) return; // HMR/再描画での二重初期化防止
+    if (clientRef.current) return;
 
     const client = new Ably.Realtime.Promise({
       authUrl: `/api/ably-token?clientId=${encodeURIComponent(clientId)}&room=${encodeURIComponent(roomU)}`,
@@ -85,15 +85,11 @@ export default function LobbyClient({ room }: { room: string }) {
     }
 
     return () => {
-      // 購読解除
       try { chRef.current?.unsubscribe(); } catch {}
       try { if (enteredRef.current) chRef.current?.presence.leave(); } catch {}
-
-      // 遷移中は close を遅延（キュー破棄 80017 の赤エラー抑制）
       const doClose = () => { try { clientRef.current?.close(); } catch {} };
       if (navigatingRef.current) setTimeout(doClose, 200);
       else doClose();
-
       clientRef.current = null;
     };
   }, [channelName, clientId, roomU, router]);
@@ -118,7 +114,7 @@ export default function LobbyClient({ room }: { room: string }) {
 
     try {
       await chRef.current?.publish("event", { type: "START", by: clientId, ts: Date.now() });
-      await new Promise((r) => setTimeout(r, 60)); // 送信フラッシュの猶予
+      await new Promise((r) => setTimeout(r, 60));
     } catch (e) {
       console.warn("[lobby] START publish failed:", e);
     }
@@ -133,36 +129,37 @@ export default function LobbyClient({ room }: { room: string }) {
     return url.toString();
   }, [roomU]);
 
-
   const badge =
     status === "connected"
-      ? { t: "Connected", bg: "#10b981" }
+      ? { t: "Connected", bg: "#10b981" }    // emerald-500
       : status === "connecting"
-      ? { t: "Connecting…", bg: "#f59e0b" }
-      : { t: "Disconnected", bg: "#ef4444" };
+      ? { t: "Connecting…", bg: "#f59e0b" } // amber-500
+      : { t: "Disconnected", bg: "#ef4444" }; // red-500
 
-  // UI
+  // ===== UI =====
   return (
-    <main style={{ maxWidth: 900, margin: "32px auto", padding: 16 }}>
-      <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 22 }}>Lobby — Room: {roomU}</h1>
-        <span style={{ background: badge.bg, color: "#fff", padding: "4px 10px", borderRadius: 12 }}>{badge.t}</span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button onClick={() => router.push(`/game?room=${encodeURIComponent(roomU)}`)} style={btnGhost}>スキップして入室</button>
+    <main style={page}>
+      <header style={header}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <h1 style={title}>Lobby — Room: {roomU}</h1>
+          <span style={{ ...chip, background: badge.bg }}>{badge.t}</span>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => navigator.clipboard.writeText(inviteUrl)} style={btnSecondary}>招待リンクをコピー</button>
         </div>
       </header>
 
       {isFull && !me && (
         <div style={alert}>
-          このルームは <b>{CAPACITY}/{CAPACITY}</b> で満員です。空きが出たら入り直してください。
+          <b>満員</b>：このルームは <b>{CAPACITY}/{CAPACITY}</b> です。空きが出たら入り直してください。
         </div>
       )}
 
       <section style={panel}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div style={{ fontWeight: 700 }}>参加者（最大 {CAPACITY} 人）</div>
-          {isHost && <span style={{ fontSize: 12, opacity: 0.75 }}>(あなたがホスト)</span>}
-          <span style={{ marginLeft: "auto", fontSize: 12, opacity: 0.75 }}>
+          <div style={{ fontWeight: 700, color: "#0f172a" }}>参加者（最大 {CAPACITY} 人）</div>
+          {isHost && <span style={{ fontSize: 12, color: "#475569" }}>(あなたがホスト)</span>}
+          <span style={{ marginLeft: "auto", fontSize: 12, color: "#475569" }}>
             準備OK: {members.filter((m) => m.ready).length}/{members.length}
           </span>
         </div>
@@ -170,26 +167,35 @@ export default function LobbyClient({ room }: { room: string }) {
         <div style={grid2}>
           {Array.from({ length: CAPACITY }).map((_, i) => {
             const m = members[i];
-            const hostBadge = m && idsSorted[0] === m.id;
+            const isHostSeat = m && idsSorted[0] === m.id;
             return (
               <div key={i} style={memberCard}>
-                <div style={{ width: 10, height: 10, borderRadius: 9999, background: m ? (m.ready ? "#10b981" : "#666") : "#333" }} />
-                <div style={{ fontWeight: 700 }}>{m ? m.name : `空席 ${i + 1}`}</div>
-                {hostBadge && <span style={{ marginLeft: 6 }}>👑</span>}
-                <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>{m ? (m.ready ? "Ready" : "待機中") : "—"}</div>
+                <div style={{ ...dot, background: m ? (m.ready ? "#10b981" : "#94a3b8") : "#e5e7eb" }} />
+                <div style={{ fontWeight: 700, color: m ? "#0f172a" : "#94a3b8" }}>
+                  {m ? m.name : `空席 ${i + 1}`}
+                </div>
+                {isHostSeat && <span title="Host" style={{ marginLeft: 6, color: "#f59e0b" }}>👑</span>}
+                <div style={{ marginLeft: "auto", fontSize: 12, color: "#64748b" }}>
+                  {m ? (m.ready ? "Ready" : "待機中") : "—"}
+                </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-          <button onClick={toggleReady} disabled={isFull && !me} style={btn}>
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button onClick={toggleReady} disabled={isFull && !me} style={btnPrimary}>
             {me?.ready ? "準備解除" : "準備OK"}
           </button>
           <button
             onClick={start}
             disabled={!isHost || !allReady}
-            style={{ ...btn, background: !isHost || !allReady ? "#333" : "#3b82f6" }}
+            style={{
+              ...btnPrimary,
+              background: !isHost || !allReady ? "#bfdbfe" : "#2563eb", // disabled: blue-200 / enabled: blue-600
+              borderColor: !isHost || !allReady ? "#93c5fd" : "#1d4ed8",
+              color: !isHost || !allReady ? "#1e3a8a" : "#fff",
+            }}
           >
             開始（ホスト）
           </button>
@@ -207,49 +213,102 @@ function formatMembers(mem: Ably.Types.PresenceMessage[]): Member[] {
 }
 
 /* ---------- styles ---------- */
+const page: React.CSSProperties = {
+  maxWidth: 920,
+  margin: "32px auto",
+  padding: 16,
+  background: "linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%)", // 明るいグラデ
+  borderRadius: 16,
+  boxShadow: "0 10px 30px rgba(2,6,23,0.06)",
+};
+
+const header: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 16,
+  justifyContent: "space-between",
+};
+
+const title: React.CSSProperties = {
+  margin: 0,
+  fontSize: 22,
+  color: "#0f172a", // slate-900
+};
+
+const chip: React.CSSProperties = {
+  color: "#fff",
+  padding: "4px 10px",
+  borderRadius: 999,
+  fontSize: 12,
+  boxShadow: "0 2px 10px rgba(2,6,23,.12)",
+};
+
 const panel: React.CSSProperties = {
-  background: "#0f0f0f",
-  border: "1px solid #222",
-  borderRadius: 12,
-  padding: 12,
+  background: "#ffffff",
+  border: "1px solid #e5e7eb",
+  borderRadius: 14,
+  padding: 16,
+  boxShadow: "0 4px 14px rgba(2,6,23,0.04)",
 };
 
 const grid2: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 10,
+  gap: 12,
 };
 
 const memberCard: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   gap: 10,
-  background: "#111",
-  border: "1px solid #222",
-  borderRadius: 10,
-  padding: 10,
+  background: "#f8fafc",
+  border: "1px solid #e5e7eb",
+  borderRadius: 12,
+  padding: 12,
   minHeight: 56,
 };
 
-const btn: React.CSSProperties = {
-  padding: "8px 12px",
-  borderRadius: 8,
-  border: "1px solid #333",
-  background: "#1a1a1a",
-  color: "#fff",
+const dot: React.CSSProperties = {
+  width: 10,
+  height: 10,
+  borderRadius: 9999,
+};
+
+const btnBase: React.CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: 10,
+  borderWidth: 1,
   cursor: "pointer",
+  fontWeight: 600,
+};
+
+const btnPrimary: React.CSSProperties = {
+  ...btnBase,
+  background: "#22c55e",        // emerald-500
+  border: "1px solid #16a34a",  // emerald-600
+  color: "#ffffff",
+};
+
+const btnSecondary: React.CSSProperties = {
+  ...btnBase,
+  background: "#ffffff",
+  border: "1px solid #cbd5e1",  // slate-300
+  color: "#0f172a",
 };
 
 const btnGhost: React.CSSProperties = {
-  ...btn,
+  ...btnBase,
   background: "transparent",
+  border: "1px solid #cbd5e1",
+  color: "#2563eb",
 };
 
 const alert: React.CSSProperties = {
-  background: "#2a1f1f",
-  border: "1px solid #5a2f2f",
-  color: "#ffd2d2",
-  borderRadius: 10,
-  padding: 10,
+  background: "#fff7ed",       // amber-50
+  border: "1px solid #fed7aa", // amber-200
+  color: "#9a3412",            // amber-800
+  borderRadius: 12,
+  padding: 12,
   marginBottom: 12,
 };

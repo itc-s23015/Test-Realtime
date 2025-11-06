@@ -15,6 +15,7 @@ const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000; // 価格自動変動
 const ATB_MAX = 100;
 
+// 株価データ生成関数
 function generateStockData(seed = Date.now()) {
   const data = [];
   let price = 15000;
