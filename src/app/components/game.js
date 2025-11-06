@@ -321,7 +321,7 @@ export default function Game() {
       if (navigatingRef.current) setTimeout(cleanup, 300);
       else cleanup();
     };
-  }, [roomU, clientId, updatePresence, allPlayers]);
+  }, [roomU, clientId, updatePresence]);
 
   // 自動価格配信（ホストのみ）
   const startAutoUpdate = (ch, initialData) => {
