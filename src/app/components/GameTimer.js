@@ -5,34 +5,45 @@ import styles from "../styles/GameTimer.module.css";
 
 const GameTimer = ({ duration = 300, onTimeUp }) =>{
   const [timeLeft, setTimeLeft] = useState(duration);
-  const startTimeRef = useRef(null);
+  const startTimeRef = useRef(Date.now());
+  const rafRef = useRef(null);
   const hasCalledTimeUp = useRef(false);
 
-  useEffect(() => {
-    // 初回のみ現在時刻を記録
-    if (!startTimeRef.current) {
-      startTimeRef.current = Date.now();
-    }
-
-    const tick = () => {
+   useEffect(() => {
+    const update = () => {
       const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const remaining = Math.max(duration - elapsed, 0);
-      setTimeLeft(remaining);
 
+      // 1秒ごとにのみstate更新 → 無駄な再レンダリング防止
+      setTimeLeft((prev) => {
+        if (Math.abs(prev - remaining) >= 1) return remaining;
+        return prev;
+      });
+
+      // 終了時コールバック
       if (remaining <= 0 && !hasCalledTimeUp.current) {
         hasCalledTimeUp.current = true;
         onTimeUp?.();
+        cancelAnimationFrame(rafRef.current);
+        return;
       }
+
+      // 常にrequestAnimationFrameで滑らかに進行
+      rafRef.current = requestAnimationFrame(update);
     };
 
-    const interval = setInterval(tick, 1000);
+    rafRef.current = requestAnimationFrame(update);
 
     // タブ復帰時にも補正
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") tick();
-    });
+    const handleVisible = () => {
+      if (document.visibilityState === "visible") update();
+    };
+    document.addEventListener("visibilitychange", handleVisible);
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
   }, [duration, onTimeUp]);
 
   // 表示用フォーマット
