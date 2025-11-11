@@ -196,8 +196,6 @@ export default function Game() {
         });
         startAutoUpdate(ch, initialData);
       }
-
-      // イベント受信設定
       
       // 株価初期化イベント
       ch.subscribe("stock-init", (msg) => {
@@ -319,12 +317,18 @@ export default function Game() {
         Math.min(20000, lastPrice + changeAmount)
       );
 
-      const lastDate = new Date(last.date);
+      const lastDate = new Date(currentData[currentData.length - 1].date);
       lastDate.setSeconds(lastDate.getSeconds() + 2);
 
       const newPoint = {
         date: lastDate.toISOString(),
         price: Math.round(newPrice),
+        volume: Math.floor(Math.random() * 100000000) + 50_000_000,
+      };
+
+      currentData[currentData.length - 1] = {
+        ...currentData[currentData.length - 1],
+        price: newPrice,
         volume: Math.floor(Math.random() * 100000000) + 50_000_000,
       };
 
@@ -335,7 +339,7 @@ export default function Game() {
         currentData = [...currentData, newPoint];
       }
 
-      setStockData(currentData);
+      setStockData([...currentData]);
       
       try {
         await ch.publish("stock-update", {
