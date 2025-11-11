@@ -1,0 +1,121 @@
+.card {
+  width: 180px;
+  height: 120px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  color: #fff;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.imageWrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.image {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  opacity: 0.3;
+}
+
+.emoji {
+  font-size: 40px;
+  text-align: center;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.gray {
+  filter: grayscale(100%);
+}
+
+.name {
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 4px;
+  font-size: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.description {
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.9;
+  line-height: 1.3;
+  position: relative;
+  z-index: 1;
+}
+
+/* 🎯 ターゲットマーク */
+.target {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 16px;
+  z-index: 2;
+}
+
+/* ⚡ コストバッジ */
+.cost {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 2;
+}
+
+/* 🧾 ツールチップ */
+.tooltip {
+  position: absolute;
+  z-index: 100;
+  top: 105%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  background: #0f0f0f;
+  border: 2px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.tooltipTitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 16px;
+}
+
+.tooltipDesc {
+  font-size: 13px;
+  opacity: 0.95;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.tooltipFooter {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #2a2a2a;
+  font-size: 11px;
+  opacity: 0.8;
+}

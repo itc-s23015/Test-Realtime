@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Logo from "../app/components/Logo";
+
 
 export default function HomePage() {
   const router = useRouter();
@@ -32,7 +34,12 @@ export default function HomePage() {
   };
 
   return (
+    
     <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+          <header style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
+      <Logo variant="full" size={28} />
+      {/* ダーク背景なら <Logo variant="full" size={28} dark /> */}
+    </header>
       <h1 style={{ fontSize: 28, marginBottom: 12 }}>Stock Field — ホーム</h1>
       <p style={{ color: "#666", marginBottom: 24 }}>
         プレイヤー名を入力して、ルームを作成するか既存のルームに参加してください。

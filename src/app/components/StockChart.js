@@ -1,15 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 
-export default function StockChart({ stockData }) {
+const StockChart = ({ stockData }) => {
     const canvasRef = useRef(null);
     const [hoveredPoint, setHoveredPoint] = useState(null);
 
-    useEffect(() => {
-        if (!stockData.length || !canvasRef.current) {
-            return;
-        }
+    // 🔧 修正: 描画パラメータをメモ化
+    const chartParams = useMemo(() => {
+        if (!stockData.length) return null;
+
+        const prices = stockData.map(d => d.price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const priceRange = maxPrice - minPrice;
+
+        return {
+            prices,
+            minPrice,
+            maxPrice,
+            priceRange,
+            dataLength: stockData.length,
+        };
+    }, [stockData]);
+
+    // 🔧 修正: チャート本体の描画（stockData変更時のみ）
+    const drawChart = useCallback(() => {
+        if (!stockData.length || !canvasRef.current || !chartParams) return;
 
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -30,10 +47,7 @@ export default function StockChart({ stockData }) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, width, height);
 
-        const prices = stockData.map(d => d.price);
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
-        const priceRange = maxPrice - minPrice;
+        const { minPrice, maxPrice, priceRange } = chartParams;
 
         // グリッド線
         ctx.strokeStyle = '#e5e7eb';
@@ -107,56 +121,92 @@ export default function StockChart({ stockData }) {
         ctx.closePath();
         ctx.fill();
 
-        // ホバーポイント
-        if (hoveredPoint !== null) {
-            const point = stockData[hoveredPoint];
-            const x = padding.left + (chartWidth / (stockData.length - 1)) * hoveredPoint;
-            const y = padding.top + chartHeight - ((point.price - minPrice) / priceRange) * chartHeight;
-
-            ctx.strokeStyle = '#9ca3af';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.moveTo(x, padding.top);
-            ctx.lineTo(x, padding.top + chartHeight);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.fillStyle = '#3b82f6';
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            const tooltipWidth = 160;
-            const tooltipHeight = 70;
-            const tooltipX = x > width - tooltipWidth - 20 ? x - tooltipWidth - 10 : x + 10;
-            const tooltipY = y - tooltipHeight / 2;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-            ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(`¥${point.price.toLocaleString()}`, tooltipX + 10, tooltipY + 25);
-
-            ctx.font = '12px sans-serif';
-            ctx.fillText(point.date, tooltipX + 10, tooltipY + 45);
-            ctx.fillText(`出来高: ${(point.volume / 1000000).toFixed(1)}M`, tooltipX + 10, tooltipY + 62);
-        }
-
         // タイトル
         ctx.fillStyle = '#111827';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'left';
         ctx.fillText('株価チャート', padding.left, 25);
 
-    }, [stockData, hoveredPoint]);
+        // hoveredPoint は別途描画するため、ここでは保存
+        canvas.dataset.chartDrawn = 'true';
+    }, [stockData, chartParams]);
 
-    const handleMouseMove = (e) => {
+    // 🔧 修正: ツールチップの描画（hoveredPoint変更時のみ）
+    const drawTooltip = useCallback(() => {
+        if (!canvasRef.current || hoveredPoint === null || !stockData.length || !chartParams) return;
+        
+        // 最初にチャートが描画されていない場合はスキップ
+        if (canvasRef.current.dataset.chartDrawn !== 'true') return;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        
+        const width = rect.width;
+        const height = rect.height;
+        const padding = { top: 40, right: 80, bottom: 60, left: 60 };
+        const chartWidth = width - padding.left - padding.right;
+        const chartHeight = height - padding.top - padding.bottom;
+
+        const { minPrice, priceRange } = chartParams;
+
+        // 既存のチャートを再描画（ツールチップをクリア）
+        drawChart();
+
+        const point = stockData[hoveredPoint];
+        const x = padding.left + (chartWidth / (stockData.length - 1)) * hoveredPoint;
+        const y = padding.top + chartHeight - ((point.price - minPrice) / priceRange) * chartHeight;
+
+        ctx.strokeStyle = '#9ca3af';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(x, padding.top);
+        ctx.lineTo(x, padding.top + chartHeight);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const tooltipWidth = 160;
+        const tooltipHeight = 70;
+        const tooltipX = x > width - tooltipWidth - 20 ? x - tooltipWidth - 10 : x + 10;
+        const tooltipY = y - tooltipHeight / 2;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(tooltipX, tooltipY, tooltipWidth, tooltipHeight);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`¥${point.price.toLocaleString()}`, tooltipX + 10, tooltipY + 25);
+
+        ctx.font = '12px sans-serif';
+        ctx.fillText(point.date, tooltipX + 10, tooltipY + 45);
+        ctx.fillText(`出来高: ${(point.volume / 1000000).toFixed(1)}M`, tooltipX + 10, tooltipY + 62);
+    }, [hoveredPoint, stockData, chartParams, drawChart]);
+
+    // 🔧 修正: チャート本体の描画（stockData変更時）
+    useEffect(() => {
+        drawChart();
+    }, [drawChart]);
+
+    // 🔧 修正: ツールチップの描画（hoveredPoint変更時）
+    useEffect(() => {
+        if (hoveredPoint !== null) {
+            // requestAnimationFrame で描画を最適化
+            requestAnimationFrame(drawTooltip);
+        }
+    }, [hoveredPoint, drawTooltip]);
+
+    const handleMouseMove = useCallback((e) => {
         if (!canvasRef.current || !stockData.length) return;
 
         const rect = canvasRef.current.getBoundingClientRect();
@@ -171,11 +221,13 @@ export default function StockChart({ stockData }) {
 
         const index = Math.round(((x - padding.left) / chartWidth) * (stockData.length - 1));
         setHoveredPoint(Math.max(0, Math.min(stockData.length - 1, index)));
-    };
+    }, [stockData]);
 
-    const handleMouseLeave = () => {
+    const handleMouseLeave = useCallback(() => {
         setHoveredPoint(null);
-    };
+        // ツールチップをクリアするため再描画
+        drawChart();
+    }, [drawChart]);
 
     return (
         <div style={{
@@ -221,3 +273,4 @@ export default function StockChart({ stockData }) {
         </div>
     );
 }
+export default StockChart;
