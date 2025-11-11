@@ -12,6 +12,8 @@ import SideBar from "./SideBar";
 import Log from "./Log";
 import TargetSelector from "./TargetSelector";
 import styles from "../styles/game.module.css";
+import  ResultModal  from "../game/ResultModal";
+
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -277,6 +279,14 @@ export default function Game() {
         });
         setAllPlayers(players);
       }
+      // === 終了結果の購読 ===
+      ch.subscribe("game-over", (msg) => {
+        const r = msg.data || {};
+        if (!r.playerId) return;
+        resultsMapRef.current.set(r.playerId, r);
+        setResults(Array.from(resultsMapRef.current.values()));
+        setIsGameOver(true); // 誰かの結果が来たらモーダルを開く
+      });
     });
 
     // クリーンアップ処理
@@ -309,43 +319,40 @@ export default function Game() {
       else cleanup();
     };
    }, [roomU, clientId, updatePresence]);
- 
- // ====== タイムアップ処理（全員で発火してOK：Mapで重複吸収） ======
-  useEffect(() => {
-    if (!roomU || !clientId || !chRef.current) return;
-    // 接続後にゲーム時間カウント開始
-    const t = setTimeout(() => onTimeUp(), GAME_DURATION * 1000);
-    return () => clearTimeout(t);
-  }, [roomU, clientId]);
 
-  const onTimeUp = async () => {
-    if (!chRef.current) return;
-    const price = stockData.length ? stockData[stockData.length - 1].price : 0;
-    const moneyNow = moneyRef.current;
-    const holdingNow = holdingRef.current;
-    const score = Math.max(0, Math.round(moneyNow + holdingNow * price));
-    const payload = {
-      type: "result",
-      playerId: clientId,
-      name: allPlayers[clientId]?.name || clientId,
-      money: moneyNow,
-      holding: holdingNow,
-      price,
-      score,
-      ts: Date.now(),
-    };
-    try {
-      await chRef.current.publish("game-over", payload);
-      // 自分分も即時反映
-      resultsMapRef.current.set(clientId, payload);
-      setResults(Array.from(resultsMapRef.current.values()));
-      // 少し待ってから確実にモーダルを開く
-      setTimeout(() => setIsGameOver(true), RESULT_WAIT_MS);
-    } catch (e) {
-      console.error("❌ 結果送信失敗:", e);
-      setIsGameOver(true); // それでも自分の結果は出す
-    }
+  const RESULT_WAIT_MS = 2000; // 任意
+
+
+const onTimeUp = async () => {
+  if (!chRef.current) return;
+  const price = stockData.length ? stockData[stockData.length - 1].price : 0;
+  const moneyNow = moneyRef.current;
+  const holdingNow = holdingRef.current;
+  const score = Math.max(0, Math.round(moneyNow + holdingNow * price));
+  const payload = {
+    type: "result",
+    playerId: clientId,
+    name: allPlayers[clientId]?.name || clientId,
+    money: moneyNow,
+    holding: holdingNow,
+    price,
+    score,
+    ts: Date.now(),
   };
+  try {
+    await chRef.current.publish("game-over", payload);
+    resultsMapRef.current.set(clientId, payload);
+    setResults(Array.from(resultsMapRef.current.values()));
+    setTimeout(() => setIsGameOver(true), RESULT_WAIT_MS); // すぐでもOK
+  } catch (e) {
+    console.error("❌ 結果送信失敗:", e);
+    // それでも自分の結果は出す
+    resultsMapRef.current.set(clientId, payload);
+    setResults(Array.from(resultsMapRef.current.values()));
+    setIsGameOver(true);
+  }
+};
+
 
   // 自動株価更新（ホストのみ）
   const startAutoUpdate = (ch, initialData) => {
@@ -464,10 +471,7 @@ export default function Game() {
           <div className={styles.timerWrapper}>
             <GameTimer
               duration={GAME_DURATION}
-              onTimeUp={() => {
-                console.log("タイマーが終了したので結果画面へ遷移します");
-                router.push("/");
-              }}
+              onTimeUp={onTimeUp}   // ← ここを差し替え
             />
           </div>
         </div>
@@ -541,19 +545,17 @@ export default function Game() {
         </div>
       </SideBar>
             {/* === リザルトモーダル === */}
-      <ResultModal
-        open={isGameOver}
-        results={results}
-        onClose={() => setIsGameOver(false)}
-        onRetry={() => {
-          // 同じルームで再読み込み
-          window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
-        }}
-        onBack={() => {
-          // ロビーへ
-          window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
-        }}
-      />
+            <ResultModal
+              open={isGameOver}
+              results={results}
+              onClose={() => setIsGameOver(false)}
+              onRetry={() => {
+                window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
+              }}
+              onBack={() => {
+                window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
+              }}
+            />
     </div>
   );
 }

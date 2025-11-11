@@ -1,64 +1,87 @@
 "use client";
 
-export default function ResultModal({ open, onClose, results = [], onRetry, onBack }) {
+import React, { useEffect } from "react";
+
+export default function ResultModal({
+  open,
+  results = [],
+  onClose,
+  onRetry,
+  onBack,
+  autoBackMs = 20000, // 5秒後に自動でロビーへ
+}) {
+  useEffect(() => {
+    if (!open || !autoBackMs) return;
+    const id = setTimeout(() => onBack?.(), autoBackMs);
+    return () => clearTimeout(id);
+  }, [open, autoBackMs, onBack]);
+
   if (!open) return null;
+
   const sorted = [...results].sort((a, b) => b.score - a.score);
+  const top = sorted[0] || {};
+  const topScore = top.score ?? 0;
+  const winners = sorted
+    .filter((r) => r.score === topScore)
+    .map((r) => r.name || r.playerId);
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,.45)",
-      display: "grid", placeItems: "center", zIndex: 1000
-    }}>
-      <div style={{
-        width: 520, maxWidth: "92vw", background: "#fff",
-        borderRadius: 16, boxShadow: "0 10px 30px rgba(0,0,0,.2)", padding: 20
-      }}>
-        <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 6 }}>🏁 結果発表</div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
-          スコア = 所持金 + （保有株 × 最終価格）
+    <div style={overlay}>
+      <div style={modal}>
+        <h2 style={{ marginTop: 0 }}>試合結果</h2>
+        <div style={{ fontWeight: 700, marginBottom: 12 }}>
+          勝者: {winners.join(", ")}（¥{topScore.toLocaleString()}）
         </div>
 
-        <ol style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
-          {sorted.map((r, i) => (
-            <li key={r.id} style={{
-              border: "1px solid #e5e7eb", borderRadius: 12, padding: 12,
-              background: i === 0 ? "#fffbe6" : "#fff"
-            }}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-                <div style={{ fontWeight: 800, fontSize: 18 }}>{i + 1}位</div>
-                <div style={{ fontWeight: 800, fontSize: 16 }}>{r.name}</div>
-                <div style={{ marginLeft: "auto", fontWeight: 900, fontSize: 18 }}>
-                  ¥{r.score.toLocaleString()}
-                </div>
-              </div>
-              <div style={{ marginTop: 6, fontSize: 12, color: "#6b7280" }}>
-                所持金 ¥{r.money.toLocaleString()} / 保有株 {r.holding} 株 / 最終価格 ¥{r.price?.toLocaleString?.() ?? "—"}
-              </div>
-            </li>
-          ))}
-        </ol>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={th}>順位</th>
+              <th style={th}>名前</th>
+              <th style={th}>所持金</th>
+              <th style={th}>持ち株</th>
+              <th style={th}>最終売価</th>
+              <th style={th}>スコア</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={r.playerId || i}>
+                <td style={td}>{i + 1}</td>
+                <td style={td}>{r.name || r.playerId}</td>
+                <td style={td}>¥{(r.money ?? 0).toLocaleString()}</td>
+                <td style={td}>{r.holding ?? 0} 株</td>
+                <td style={td}>¥{(r.price ?? 0).toLocaleString()}</td>
+                <td style={{ ...td, fontWeight: 700 }}>
+                  ¥{(r.score ?? 0).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <button onClick={onRetry} style={btnPrimary}>同じルームで再戦</button>
-          <button onClick={onBack}  style={btnGhost}>ロビーへ戻る</button>
-          <div style={{ marginLeft: "auto" }}>
-            <button onClick={onClose} style={btnPlain}>閉じる</button>
-          </div>
+          <button onClick={onBack} style={btn}>ロビーへ戻る</button>
+          <button onClick={onRetry} style={btn}>同じルームで再戦</button>
+        </div>
+
+        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+          ※ {Math.round(autoBackMs / 1000)}秒後に自動でロビーへ戻ります
         </div>
       </div>
     </div>
   );
 }
 
-const btnPrimary = {
-  padding: "10px 14px", borderRadius: 10, border: "1px solid #111",
-  background: "#111", color: "#fff", cursor: "pointer", fontWeight: 800,
+const overlay = {
+  position: "fixed", inset: 0, background: "rgba(0,0,0,.5)",
+  display: "grid", placeItems: "center", zIndex: 1000
 };
-const btnGhost = {
-  padding: "10px 14px", borderRadius: 10, border: "1px solid #ccc",
-  background: "#fff", color: "#111", cursor: "pointer", fontWeight: 800,
+const modal = {
+  width: "min(720px, 92vw)", background: "#fff",
+  borderRadius: 12, padding: 16, boxShadow: "0 10px 30px rgba(0,0,0,.25)"
 };
-const btnPlain = {
-  padding: "10px 14px", borderRadius: 10, border: "1px solid #e5e7eb",
-  background: "#fff", color: "#111", cursor: "pointer",
-};
+const th = { textAlign: "left", borderBottom: "1px solid #eee", padding: "8px 6px" };
+const td = { borderBottom: "1px solid #f3f3f3", padding: "8px 6px" };
+const btn = { padding: "8px 12px", borderRadius: 8, border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer" };
+const btnGhost = { padding: "8px 12px", borderRadius: 8, border: "1px solid #ccc", background: "#fff", cursor: "pointer" };
