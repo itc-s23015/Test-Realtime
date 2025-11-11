@@ -13,6 +13,8 @@ import SideBar from "./SideBar";
 import Log from "./Log";
 import TargetSelector from "./TargetSelector";
 import styles from "../styles/game.module.css";
+import  ResultModal  from "../game/ResultModal";
+
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -70,6 +72,11 @@ export default function Game() {
   const [status, setStatus] = useState("connecting");
   const [hand, setHand] = useState(getInitialHand());
   const [logs, setLogs] = useState([]);
+    // ゲーム終了 & 結果
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
+  const resultsMapRef = useRef(new Map());    // 重複上書き用
+
 
   // サイドバー開閉状態
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
@@ -321,6 +328,14 @@ export default function Game() {
         });
         setAllPlayers(players);
       }
+      // === 終了結果の購読 ===
+      ch.subscribe("game-over", (msg) => {
+        const r = msg.data || {};
+        if (!r.playerId) return;
+        resultsMapRef.current.set(r.playerId, r);
+        setResults(Array.from(resultsMapRef.current.values()));
+        setIsGameOver(true); // 誰かの結果が来たらモーダルを開く
+      });
     });
 
     // クリーンアップ処理
@@ -352,7 +367,41 @@ export default function Game() {
       if (navigatingRef.current) setTimeout(cleanup, 300);
       else cleanup();
     };
-  }, [roomU, clientId, updatePresence]);
+   }, [roomU, clientId, updatePresence]);
+
+  const RESULT_WAIT_MS = 2000; // 任意
+
+
+const onTimeUp = async () => {
+  if (!chRef.current) return;
+  const price = stockData.length ? stockData[stockData.length - 1].price : 0;
+  const moneyNow = moneyRef.current;
+  const holdingNow = holdingRef.current;
+  const score = Math.max(0, Math.round(moneyNow + holdingNow * price));
+  const payload = {
+    type: "result",
+    playerId: clientId,
+    name: allPlayers[clientId]?.name || clientId,
+    money: moneyNow,
+    holding: holdingNow,
+    price,
+    score,
+    ts: Date.now(),
+  };
+  try {
+    await chRef.current.publish("game-over", payload);
+    resultsMapRef.current.set(clientId, payload);
+    setResults(Array.from(resultsMapRef.current.values()));
+    setTimeout(() => setIsGameOver(true), RESULT_WAIT_MS); // すぐでもOK
+  } catch (e) {
+    console.error("❌ 結果送信失敗:", e);
+    // それでも自分の結果は出す
+    resultsMapRef.current.set(clientId, payload);
+    setResults(Array.from(resultsMapRef.current.values()));
+    setIsGameOver(true);
+  }
+};
+
 
   // 自動株価更新（ホストのみ）
   const startAutoUpdate = (ch, initialData) => {
@@ -477,10 +526,7 @@ export default function Game() {
           <div className={styles.timerWrapper}>
             <GameTimer
               duration={GAME_DURATION}
-              onTimeUp={() => {
-                console.log("タイマーが終了したので結果画面へ遷移します");
-                router.push("/");
-              }}
+              onTimeUp={onTimeUp}   // ← ここを差し替え
             />
           </div>
         </div>
@@ -563,6 +609,18 @@ export default function Game() {
           ))}
         </div>
       </SideBar>
+            {/* === リザルトモーダル === */}
+            <ResultModal
+              open={isGameOver}
+              results={results}
+              onClose={() => setIsGameOver(false)}
+              onRetry={() => {
+                window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
+              }}
+              onBack={() => {
+                window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
+              }}
+            />
     </div>
   );
 }
