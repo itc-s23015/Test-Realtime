@@ -6,6 +6,7 @@ import Ably from "ably";
 import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
+import TradingPanel from "./TradingPanel";
 import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
 import Hand from "./Hand";
 import SideBar from "./SideBar";
@@ -107,6 +108,11 @@ export default function Game() {
     [roomNumber]
   );
 
+  // 現在の株価
+  const currentPrice = useMemo(() => {
+    return stockData.length > 0 ? stockData[stockData.length - 1].price : 0;
+  }, [stockData]);
+
   // ユーティリティ関数
   const addLog = (message) => setLogs((prev) => [...prev, message]);
 
@@ -126,6 +132,51 @@ export default function Game() {
     },
     [clientId]
   );
+
+  // 取引機能
+  const handleTrade = useCallback(async (type, amount) => {
+    if (!chRef.current || amount <= 0) return;
+
+    const price = currentPrice;
+    const cost = price * amount;
+    
+    if (type === "buy") {
+      if(money < cost) {
+        setError("❌ 資金が不足しています");
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+
+      const newMoney = money - cost;
+      const newHolding = holding + amount;
+
+      setMoney(newMoney);
+      setHolding(newHolding);
+      await updatePresence(newMoney, newHolding);
+
+      addLog(`🛒 ${amount} 株を ¥${cost.toLocaleString()} で購入(合計￥${cost.toLocaleString()})`);
+      setError(`✅ ${amount} 株を購入しました！`);
+      setTimeout(() => setError(""), 3000);
+    } else if (type === "sell") {
+      if(holding < amount) {
+        setError("❌ 保有株が不足しています");
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+      
+      const newMoney = money + cost;
+      const newHolding = holding - amount;
+
+      setMoney(newMoney);
+      setHolding(newHolding);
+    
+      await updatePresence(newMoney, newHolding);
+
+      addLog(`💰 ${amount} 株を ¥${price.toLocaleString()} で売却(合計￥${cost.toLocaleString()})`);
+      setError(`✅ ${amount} 株を売却しました！`);
+      setTimeout(() => setError(""), 3000);
+    }
+  }, [money, holding, currentPrice, updatePresence]);
 
   // URLからルーム番号取得
   useEffect(() => {
@@ -466,6 +517,16 @@ export default function Game() {
 
         {/* 株価チャート */}
         {stockData.length > 0 && <StockChart stockData={stockData} />}
+
+        {/* 取引パネル */}
+        {currentPrice > 0 && (
+          <TradingPanel
+            currentPrice={currentPrice}
+            money={money}
+            holding={holding}
+            onTrade={handleTrade}
+          />
+        )}
 
         {/* 手札表示 */}
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
