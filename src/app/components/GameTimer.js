@@ -1,157 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
+import styles from "../styles/GameTimer.module.css";
 
-const GameTimer = ({ 
-  duration = 300, // デフォルト5分（秒）
-  onTimeUp 
-}) => {
+const GameTimer = ({ duration = 300, onTimeUp }) =>{
   const [timeLeft, setTimeLeft] = useState(duration);
-  const [isWarning, setIsWarning] = useState(false);
+  const startTimeRef = useRef(null);
+  const hasCalledTimeUp = useRef(false);
 
   useEffect(() => {
-    if (timeLeft <= 0) {
-      onTimeUp?.();
-      return;
+    // 初回のみ現在時刻を記録
+    if (!startTimeRef.current) {
+      startTimeRef.current = Date.now();
     }
 
-    // 残り30秒で警告表示
-    if (timeLeft <= 30 && !isWarning) {
-      setIsWarning(true);
-    }
+    const tick = () => {
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const remaining = Math.max(duration - elapsed, 0);
+      setTimeLeft(remaining);
 
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+      if (remaining <= 0 && !hasCalledTimeUp.current) {
+        hasCalledTimeUp.current = true;
+        onTimeUp?.();
+      }
+    };
 
-    return () => clearInterval(timer);
-  }, [timeLeft, onTimeUp, isWarning]);
+    const interval = setInterval(tick, 1000);
 
-  // 時:分:秒 フォーマット
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
+    // タブ復帰時にも補正
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") tick();
+    });
 
-    if (hours > 0) {
-      return `${hours}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    }
-    return `${mins}:${String(secs).padStart(2, "0")}`;
+    return () => clearInterval(interval);
+  }, [duration, onTimeUp]);
+
+  // 表示用フォーマット
+  const mins = Math.floor(timeLeft / 60);
+  const secs = timeLeft % 60;
+
+  // 残り時間に応じて色を変える
+  const getColor = () => {
+    if (timeLeft <= 30) return styles.red;
+    if (timeLeft <= 60) return styles.orange;
+    return styles.green;
   };
 
-  // 進捗率（パーセンテージ）
   const progress = (timeLeft / duration) * 100;
 
-  // 色を時間に応じて変更
-  const getColor = () => {
-    if (timeLeft <= 30) return "#ef4444"; // 赤
-    if (timeLeft <= 60) return "#f59e0b"; // オレンジ
-    return "#10b981"; // 緑
-  };
-
   return (
-    <div style={{
-      background: "#fff",
-      borderRadius: "16px",
-      padding: "20px 28px",
-      boxShadow: isWarning 
-        ? "0 6px 20px rgba(239, 68, 68, 0.3)" 
-        : "0 4px 12px rgba(0,0,0,0.1)",
-      display: "flex",
-      alignItems: "center",
-      gap: "20px",
-      border: isWarning ? "3px solid #ef4444" : "1px solid #e5e7eb",
-      animation: isWarning ? "pulse 1.5s ease-in-out infinite" : "none",
-      transition: "all 0.3s ease"
-    }}>
-      {/* タイマーアイコン */}
-      <div style={{
-        fontSize: "32px",
-        animation: timeLeft <= 10 ? "shake 0.5s ease-in-out infinite" : "none"
-      }}>
-        ⏱️
-      </div>
+    <div className={`${styles.timerContainer} ${getColor()}`}>
+      <div className={styles.icon}>⏱️</div>
 
-      {/* タイマー本体 */}
-      <div style={{ flex: 1 }}>
-        <div style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          marginBottom: "8px"
-        }}>
-          <span style={{
-            fontSize: "14px",
-            fontWeight: "600",
-            color: "#6b7280"
-          }}>
-            残り時間
-          </span>
-          <span style={{
-            fontSize: "32px",
-            fontWeight: "bold",
-            color: getColor(),
-            fontFamily: "monospace",
-            letterSpacing: "2px"
-          }}>
-            {formatTime(timeLeft)}
+      <div className={styles.timeWrapper}>
+        <div className={styles.timeHeader}>
+          <span className={styles.label}>残り時間</span>
+          <span className={`${styles.timeValue} ${getColor()}`}>
+            {mins}:{secs.toString().padStart(2, "0")}
           </span>
         </div>
 
-        {/* プログレスバー */}
-        <div style={{
-          width: "100%",
-          height: "8px",
-          background: "#e5e7eb",
-          borderRadius: "999px",
-          overflow: "hidden"
-        }}>
-          <div style={{
-            width: `${progress}%`,
-            height: "100%",
-            background: getColor(),
-            transition: "width 1s linear, background-color 0.3s",
-            borderRadius: "999px"
-          }} />
+        <div className={styles.progressBar}>
+          <div
+            className={`${styles.progressFill} ${getColor()}`}
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
-
-      {/* 警告メッセージ */}
-      {isWarning && (
-        <div style={{
-          position: "absolute",
-          top: "-12px",
-          right: "20px",
-          background: "#ef4444",
-          color: "#fff",
-          padding: "4px 12px",
-          borderRadius: "12px",
-          fontSize: "12px",
-          fontWeight: "bold",
-          boxShadow: "0 2px 8px rgba(239, 68, 68, 0.4)"
-        }}>
-          ⚠️ あと{timeLeft}秒！
-        </div>
-      )}
-
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.02); }
-        }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
-      `}</style>
     </div>
   );
 }
+
 export default GameTimer;

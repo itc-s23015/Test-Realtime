@@ -1,0 +1,79 @@
+/* ====== レイアウト ====== */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 32px;
+}
+
+.innerContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ====== ヘッダー ====== */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.statusBadge {
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.timerWrapper {
+  margin-left: auto;
+}
+
+/* ====== エラーバー ====== */
+.errorBar {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: bold;
+  border: 2px solid;
+}
+
+.errorBarSuccess {
+  color: #16a34a;
+  background-color: #dcfce7;
+  border-color: #16a34a;
+}
+
+.errorBarError {
+  color: #dc2626;
+  background-color: #fee2e2;
+  border-color: #dc2626;
+}
+
+/* ====== ユーザー一覧 ====== */
+.userListTitle {
+  font-weight: bold;
+  margin-top: 20px;
+}
+
+.userListItem {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* ====== メモ欄 ====== */
+.memoContent {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.7;
+}

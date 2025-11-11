@@ -55,6 +55,8 @@ export const CARD_DEFINITIONS = {
         color: '#10b981',
         hoverColor: '#059669',
         effectAmount: -1,
+        imageSrc: '/image/cards/testCard.png',
+        imageAlt: '小ダメージ攻撃(株)カードの画像',
         rarity: RARITY.NORMAL,
     },
     [CARD_TYPES.REDUCE_HOLDINGS_MEDIUM]: {

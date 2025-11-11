@@ -1,0 +1,78 @@
+.timerContainer {
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  border: 2px solid #10b981;
+  transition: all 0.3s ease;
+}
+
+.icon {
+  font-size: 28px;
+}
+
+.timeWrapper {
+  flex: 1;
+}
+
+.timeHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.label {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.timeValue {
+  font-size: 28px;
+  font-weight: bold;
+  font-family: monospace;
+  transition: color 0.3s;
+}
+
+.progressBar {
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s linear, background 0.3s;
+}
+
+/* 色テーマ */
+.green {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.orange {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.red {
+  border-color: #ef4444;
+  color: #ef4444;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* 警告時のアニメーション */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+}

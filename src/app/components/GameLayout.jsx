@@ -6,7 +6,7 @@ import React from 'react';
  * chart / players / log / cards / wallet をスロットとして受け取り、
  * 指定レイアウトで配置します。
  */
-export default function GameLayout({ chart, players, log, cards, wallet }) {
+const GameLayout = ({ chart, players, log, cards, wallet }) => {
   return (
     <div className="gameGrid">
       <section className="area-chart">{chart}</section>
@@ -24,3 +24,5 @@ export default function GameLayout({ chart, players, log, cards, wallet }) {
     </div>
   );
 }
+
+export default  GameLayout;

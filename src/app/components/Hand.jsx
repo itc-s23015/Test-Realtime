@@ -10,12 +10,12 @@ import CardView from "./CardView.jsx";
  * @param {number} maxHand - 手札の最大枚数
  * @param {number} meAtb - 現在のATB値（将来実装用）
  */
-export default function Hand({
+const Hand = ({
   hand = [],
   meAtb = 0,
   onPlay,
   maxHand = 8,
-}) {
+}) => {
   // ATBが100未満の場合は使用不可（将来実装）
   const disabledByATB = (c) => {
     // JUNKカード以外はATB100が必要（将来の実装用）
@@ -26,7 +26,7 @@ export default function Hand({
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
-        <div className={styles.title}>🃏 Your Hand</div>
+        <div className={styles.title}>🃏カード</div>
         <div className={styles.meta}>
           <span className={hand.length >= maxHand ? styles.warn : ""}>
             {hand.length}/{maxHand}
@@ -60,3 +60,4 @@ export default function Hand({
     </div>
   );
 }
+export default Hand;

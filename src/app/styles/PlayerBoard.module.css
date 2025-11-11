@@ -1,0 +1,54 @@
+.board {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 12px;
+  color: #ffffff;
+  font-family: "Inter", sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.moneyInfo {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.atbBar {
+  background: #0b0b0b;
+  border: 1px solid #333;
+  border-radius: 8px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.atbFill {
+  height: 100%;
+  background: #00e676;
+  transition: width 80ms linear;
+}
+
+.statusLine {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 6px;
+}
+
+.cardInfo {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.9;
+}

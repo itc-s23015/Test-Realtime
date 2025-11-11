@@ -2,7 +2,7 @@
 
 import styles from "../styles//PlayerInfo.module.css";
 
-export default function PlayerInfo({ money = 0, holding = 0, roomNumber = "" }) {
+const PlayerInfo = ({ money = 0, holding = 0, roomNumber = "" }) => {
     return (
         <div className={styles.container}>
             <div className={styles.toSection}>
@@ -28,3 +28,5 @@ export default function PlayerInfo({ money = 0, holding = 0, roomNumber = "" }) 
         </div>
     );
 }
+
+export default PlayerInfo;
