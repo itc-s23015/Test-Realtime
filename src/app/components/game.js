@@ -9,12 +9,16 @@ import ControlButtons from "./ControlButtons";
 import GameTimer from "./GameTimer";
 import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
 import Hand from "./Hand";
+import ResultModal from "../game/ResultModal";
+
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 2000;     // 価格自動配信間隔（2秒）
 const GAME_DURATION = 300;             // 秒
+const RESULT_WAIT_MS = 1500;           //
+
 
 // 初期手札（お好みで調整OK）
 function getInitialHand() {
@@ -140,6 +144,11 @@ export default function Game() {
   const [status, setStatus] = useState("connecting");
   const [hand, setHand] = useState(getInitialHand());
   const [logs, setLogs] = useState([]);
+    // ゲーム終了 & 結果
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
+  const resultsMapRef = useRef(new Map());    // 重複上書き用
+
 
   // サイドバー
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
@@ -284,6 +293,16 @@ export default function Game() {
         addLog(`🃏 ${playerId} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
       });
 
+           // === 終了結果の購読 ===
+        ch.subscribe("game-over", (msg) => {
+          const r = msg.data || {};
+          if (!r.playerId) return;
+          // 同じplayerIdの結果は上書き
+          resultsMapRef.current.set(r.playerId, r);
+          setResults(Array.from(resultsMapRef.current.values()));
+          setIsGameOver(true);
+      });
+
       async function refreshPlayers() {
         const mem = await ch.presence.get();
         const players = {};
@@ -323,7 +342,44 @@ export default function Game() {
       if (navigatingRef.current) setTimeout(cleanup, 300);
       else cleanup();
     };
-  }, [roomU, clientId, updatePresence]);
+   }, [roomU, clientId, updatePresence]);
+ 
+ // ====== タイムアップ処理（全員で発火してOK：Mapで重複吸収） ======
+  useEffect(() => {
+    if (!roomU || !clientId || !chRef.current) return;
+    // 接続後にゲーム時間カウント開始
+    const t = setTimeout(() => onTimeUp(), GAME_DURATION * 1000);
+    return () => clearTimeout(t);
+  }, [roomU, clientId]);
+
+  const onTimeUp = async () => {
+    if (!chRef.current) return;
+    const price = stockData.length ? stockData[stockData.length - 1].price : 0;
+    const moneyNow = moneyRef.current;
+    const holdingNow = holdingRef.current;
+    const score = Math.max(0, Math.round(moneyNow + holdingNow * price));
+    const payload = {
+      type: "result",
+      playerId: clientId,
+      name: allPlayers[clientId]?.name || clientId,
+      money: moneyNow,
+      holding: holdingNow,
+      price,
+      score,
+      ts: Date.now(),
+    };
+    try {
+      await chRef.current.publish("game-over", payload);
+      // 自分分も即時反映
+      resultsMapRef.current.set(clientId, payload);
+      setResults(Array.from(resultsMapRef.current.values()));
+      // 少し待ってから確実にモーダルを開く
+      setTimeout(() => setIsGameOver(true), RESULT_WAIT_MS);
+    } catch (e) {
+      console.error("❌ 結果送信失敗:", e);
+      setIsGameOver(true); // それでも自分の結果は出す
+    }
+  };
 
   // 自動価格配信（ホストのみ）
   const startAutoUpdate = (ch, initialData) => {
@@ -566,6 +622,20 @@ export default function Game() {
           ))}
         </div>
       </SideBar>
+            {/* === リザルトモーダル === */}
+      <ResultModal
+        open={isGameOver}
+        results={results}
+        onClose={() => setIsGameOver(false)}
+        onRetry={() => {
+          // 同じルームで再読み込み
+          window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
+        }}
+        onBack={() => {
+          // ロビーへ
+          window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
+        }}
+      />
     </div>
   );
 }
