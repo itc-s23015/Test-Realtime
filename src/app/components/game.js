@@ -8,27 +8,16 @@ import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
 import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
 import Hand from "./Hand";
-<<<<<<< HEAD
-import ResultModal from "../game/ResultModal";
-
-=======
 import SideBar from "./SideBar";
 import Log from "./Log";
 import TargetSelector from "./TargetSelector";
 import styles from "../styles/game.module.css";
->>>>>>> main
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 2000;     // 価格自動配信間隔（2秒）
-<<<<<<< HEAD
-const GAME_DURATION = 300;             // 秒
-const RESULT_WAIT_MS = 1500;           //
-
-=======
 const GAME_DURATION = 300;             // ゲーム時間（秒）
->>>>>>> main
 
 // 初期手札
 function getInitialHand() {
@@ -65,87 +54,7 @@ function generateStockData(seed = Date.now()) {
   return data;
 }
 
-<<<<<<< HEAD
-// ====== UI 部品 ======
-function SideBar({ side, open, onToggle, width, title, children }) {
-  const isLeft = side === "left";
-  return (
-    <aside
-      style={{
-        position: "fixed",
-        top: 0,
-        bottom: 0,
-        [isLeft ? "left" : "right"]: 0,
-        width,
-        transform: `translateX(${open ? "0%" : isLeft ? "-95%" : "95%"})`,
-        transition: "transform .25s ease",
-        background: "#ffffff",
-        borderLeft: isLeft ? "none" : "1px solid #e5e7eb",
-        borderRight: isLeft ? "1px solid #e5e7eb" : "none",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-        padding: 16,
-        zIndex: 40,
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      {/* トグルタブ */}
-      <button
-        onClick={onToggle}
-        aria-label="toggle sidebar"
-        style={{
-          position: "absolute",
-          top: 80,
-          [isLeft ? "right" : "left"]: -28,
-          width: 28,
-          height: 56,
-          borderRadius: isLeft ? "0 8px 8px 0" : "8px 0 0 8px",
-          border: "1px solid #e5e7eb",
-          background: "#fff",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
-          cursor: "pointer",
-        }}
-      >
-        {isLeft ? (open ? "◀" : "▶") : (open ? "▶" : "◀")}
-      </button>
-
-      <div style={{ fontWeight: 800, color: "#111827" }}>{title}</div>
-      <div style={{ overflow: "auto" }}>{children}</div>
-    </aside>
-  );
-}
-
-function Log({ log = [] }) {
-  return (
-    <div
-      style={{
-        background: "#ffffff",
-        border: "1px solid #2a2a2a",
-        borderRadius: 12,
-        padding: 10,
-        height: 300,
-        color: "#000000",
-        overflow: "auto",
-      }}
-    >
-      {log.length === 0 ? (
-        <div style={{ opacity: 0.6, fontSize: 12 }}>ログはまだありません</div>
-      ) : (
-        log.map((l, i) => (
-          <div key={i} style={{ fontSize: 12, lineHeight: 1.4 }}>
-            {l}
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
-// ====== メイン ======
-=======
 // ====== メインコンポーネント ======
->>>>>>> main
 export default function Game() {
   const router = useRouter();
 
@@ -355,20 +264,7 @@ export default function Game() {
         );
       });
 
-<<<<<<< HEAD
-           // === 終了結果の購読 ===
-        ch.subscribe("game-over", (msg) => {
-          const r = msg.data || {};
-          if (!r.playerId) return;
-          // 同じplayerIdの結果は上書き
-          resultsMapRef.current.set(r.playerId, r);
-          setResults(Array.from(resultsMapRef.current.values()));
-          setIsGameOver(true);
-      });
-
-=======
       // プレイヤー情報更新関数
->>>>>>> main
       async function refreshPlayers() {
         const mem = await ch.presence.get();
         const players = {};
