@@ -85,6 +85,10 @@ export const CARD_DEFINITIONS = {
     },
 };   
 
+// カード情報を配列へ
+export const CARD_LIST = Object.values(CARD_DEFINITIONS);
+
+// カード効果を実行する関数
 export function executeCardEffect(cardType, gameState, playerId, targetId = null) {
     const card = CARD_DEFINITIONS[cardType];
     if (!card) {
@@ -145,4 +149,76 @@ function executeReduceHoldingsCard(card, gameState, playerId, targetId) {
         gameState: newState,
         needsSync: true
     };
+}
+
+// ===================== ランダムドロー（重み付き） =====================
+
+// 再現性が必要な時のシード付き乱数
+export function createSeededRng(seed = Date.now()) {
+  // Park–Miller (minimal standard)
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+// レアリティを重みで1つ選ぶ
+function pickRarity(rng = Math.random) {
+  const entries = [
+    [RARITY.NORMAL, RARITY_META[RARITY.NORMAL].weight],
+    [RARITY.RARE, RARITY_META[RARITY.RARE].weight],
+    [RARITY.SUPERRARE, RARITY_META[RARITY.SUPERRARE].weight],
+  ];
+  const total = entries.reduce((a, [, w]) => a + w, 0);
+  let r = rng() * total;
+  for (const [rarity, w] of entries) {
+    r -= w;
+    if (r < 0) return rarity;
+  }
+  return RARITY.NORMAL;
+}
+
+// レアリティを決めて、その中から1枚
+export function drawRandomCard({ rng } = {}) {
+  const random = rng || Math.random;
+  const rarity = pickRarity(random);
+  const pool = CARD_LIST.filter((c) => c.rarity === rarity);
+  const list = pool.length ? pool : CARD_LIST;
+  const idx = Math.floor(random() * list.length);
+  return list[idx];
+}
+
+// n枚ドロー（noDuplicates で同じIDを避ける）
+export function drawCards(n = 1, { rng, noDuplicates = false } = {}) {
+  const random = rng || Math.random;
+  const result = [];
+  const seen = new Set();
+  for (let i = 0; i < n; i++) {
+    let card = drawRandomCard({ rng: random });
+    if (noDuplicates) {
+      let guard = 0;
+      while (seen.has(card.id) && guard++ < 20) {
+        card = drawRandomCard({ rng: random });
+      }
+      seen.add(card.id);
+    }
+    result.push(card);
+  }
+  return result;
+}
+
+// デッキ生成＆シャッフル
+export function buildDeck({ size = 40, rng } = {}) {
+  const random = rng || Math.random;
+  const deck = [];
+  for (let i = 0; i < size; i++) deck.push(drawRandomCard({ rng: random }));
+  return shuffle(deck, random);
+}
+
+export function shuffle(arr, rng = Math.random) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
