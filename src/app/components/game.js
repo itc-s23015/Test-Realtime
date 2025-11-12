@@ -11,6 +11,7 @@ import Hand from "./Hand";
 import SideBar from "./SideBar";
 import Log from "./Log";
 import TargetSelector from "./TargetSelector";
+import RightUserList from "./RightUserList";
 import styles from "../styles/game.module.css";
 import  ResultModal  from "../game/ResultModal";
 
@@ -498,14 +499,14 @@ const onTimeUp = async () => {
             roomNumber={roomNumber}
           />
         )}
-
+ 
         {/* ターゲット選択UI */}
-        <TargetSelector
-          otherPlayers={otherPlayers}
+{/*         <TargetSelector
+           otherPlayers={otherPlayers}
           selectedTarget={selectedTarget}
           onTargetSelect={handleTargetSelect}
-        />
-
+        /> */}
+        
         {/* 株価チャート */}
         {stockData.length > 0 && <StockChart stockData={stockData} />}
 
@@ -535,14 +536,13 @@ const onTimeUp = async () => {
         title="ログ / ユーザー一覧"
       >
         <Log log={logs} />
-        <div className={styles.userListTitle}>ユーザー一覧</div>
-        <div>
-          {Object.entries(allPlayers).map(([id, p]) => (
-            <div key={id} className={styles.userListItem}>
-              {p.name} — 保有株: {p.holding} 株
-            </div>
-          ))}
-        </div>
+      <div className={styles.userListTitle}>ユーザー一覧</div>
+      <RightUserList
+        meId={clientId}
+        players={allPlayers}
+        selectedTarget={selectedTarget}
+        onSelect={handleTargetSelect}
+      />
       </SideBar>
             {/* === リザルトモーダル === */}
             <ResultModal
