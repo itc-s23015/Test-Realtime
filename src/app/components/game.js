@@ -6,6 +6,7 @@ import Ably from "ably";
 import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
+import TradingPanel from "./TradingPanel";
 import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
 import Hand from "./Hand";
 import SideBar from "./SideBar";
@@ -116,6 +117,11 @@ export default function Game() {
     [roomNumber]
   );
 
+  // 現在の株価
+  const currentPrice = useMemo(() => {
+    return stockData.length > 0 ? stockData[stockData.length - 1].price : 0;
+  }, [stockData]);
+
   // ユーティリティ関数
   const addLog = (message) => setLogs((prev) => [...prev, message]);
 
@@ -149,6 +155,51 @@ const { atb, spend, setRate, setMax, reset } = useATB({
   syncPresence: syncATBToPresence,
   syncIntervalMs: 500,
 });
+
+  // 取引機能
+  const handleTrade = useCallback(async (type, amount) => {
+    if (!chRef.current || amount <= 0) return;
+
+    const price = currentPrice;
+    const cost = price * amount;
+    
+    if (type === "buy") {
+      if(money < cost) {
+        setError("❌ 資金が不足しています");
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+
+      const newMoney = money - cost;
+      const newHolding = holding + amount;
+
+      setMoney(newMoney);
+      setHolding(newHolding);
+      await updatePresence(newMoney, newHolding);
+
+      addLog(`🛒 ${amount} 株を ¥${cost.toLocaleString()} で購入(合計￥${cost.toLocaleString()})`);
+      setError(`✅ ${amount} 株を購入しました！`);
+      setTimeout(() => setError(""), 3000);
+    } else if (type === "sell") {
+      if(holding < amount) {
+        setError("❌ 保有株が不足しています");
+        setTimeout(() => setError(""), 3000);
+        return;
+      }
+      
+      const newMoney = money + cost;
+      const newHolding = holding - amount;
+
+      setMoney(newMoney);
+      setHolding(newHolding);
+    
+      await updatePresence(newMoney, newHolding);
+
+      addLog(`💰 ${amount} 株を ¥${price.toLocaleString()} で売却(合計￥${cost.toLocaleString()})`);
+      setError(`✅ ${amount} 株を売却しました！`);
+      setTimeout(() => setError(""), 3000);
+    }
+  }, [money, holding, currentPrice, updatePresence]);
 
   // URLからルーム番号取得
   useEffect(() => {
@@ -221,8 +272,6 @@ const { atb, spend, setRate, setMax, reset } = useATB({
         });
         startAutoUpdate(ch, initialData);
       }
-
-      // イベント受信設定
       
       // 株価初期化イベント
       ch.subscribe("stock-init", (msg) => {
@@ -401,12 +450,18 @@ const onTimeUp = async () => {
         Math.min(20000, lastPrice + changeAmount)
       );
 
-      const lastDate = new Date(last.date);
+      const lastDate = new Date(currentData[currentData.length - 1].date);
       lastDate.setSeconds(lastDate.getSeconds() + 2);
 
       const newPoint = {
         date: lastDate.toISOString(),
         price: Math.round(newPrice),
+        volume: Math.floor(Math.random() * 100000000) + 50_000_000,
+      };
+
+      currentData[currentData.length - 1] = {
+        ...currentData[currentData.length - 1],
+        price: newPrice,
         volume: Math.floor(Math.random() * 100000000) + 50_000_000,
       };
 
@@ -417,7 +472,7 @@ const onTimeUp = async () => {
         currentData = [...currentData, newPoint];
       }
 
-      setStockData(currentData);
+      setStockData([...currentData]);
       
       try {
         await ch.publish("stock-update", {
@@ -591,6 +646,16 @@ const onTimeUp = async () => {
 
         {/* ATBゲージ */}
         <ATBBar value={atb} max={100} label="ATB" />
+        
+        {/* 取引パネル */}
+        {currentPrice > 0 && (
+          <TradingPanel
+            currentPrice={currentPrice}
+            money={money}
+            holding={holding}
+            onTrade={handleTrade}
+          />
+        )}
 
         {/* 手札表示 */}
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />

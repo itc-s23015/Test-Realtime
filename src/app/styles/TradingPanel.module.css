@@ -1,0 +1,224 @@
+.container {
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #111827;
+    margin: 0;
+}
+
+.currentPrice {
+    font-size: 18px;
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+.tradeTypeSelector {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.typeButton {
+    flex: 1;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: white;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.typeButton:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.typeButtonActive {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+    color: #3b82f6;
+}
+
+.amountSection {
+    margin-bottom: 24px;
+}
+
+.label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.amountControls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.controlButton {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    font-weight: bold;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    background-color: white;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.controlButton:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.controlButton:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.amountInput {
+    flex: 1;
+    padding: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+}
+
+.amountInput:focus {
+    border-color: #3b82f6;
+}
+
+.quickSelect {
+    display: flex;
+    gap: 8px;
+}
+
+.quickButton {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.quickButton:hover:not(:disabled) {
+    border-color: #3b82f6;
+    color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.quickButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.summary {
+    background-color: #f9fafb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #374151;
+}
+
+.summaryRow:last-child {
+    margin-bottom: 0;
+}
+
+.summaryValue {
+    font-weight: bold;
+    font-size: 16px;
+    color: #111827;
+}
+
+.insufficient {
+    color: #dc2626;
+}
+
+.tradeButton {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+}
+
+.buyButton {
+    background-color: #10b981;
+}
+
+.buyButton:hover:not(:disabled) {
+    background-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.sellButton {
+    background-color: #ef4444;
+}
+
+.sellButton:hover:not(:disabled) {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+}
+
+.tradeButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.limits {
+    text-align: center;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.limitText {
+    padding: 4px 0;
+}
