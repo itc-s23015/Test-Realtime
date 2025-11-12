@@ -84,6 +84,10 @@ export default function Game() {
   const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
   const resultsMapRef = useRef(new Map());    // 重複上書き用
 
+   // カウントダウン＆ゲームタイマー開始時刻
+  const [cdSeconds, setCdSeconds] = useState(5);
+  const [gameStartAt, setGameStartAt] = useState(null); // ms (number)
+
    //カウントダウン
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
@@ -316,7 +320,8 @@ const { atb, spend, setRate, setMax, reset } = useATB({
       //開始までのカウントダウン
        ch.subscribe("start-countdown", (msg) => {
         const { startAt, seconds = 5 } = msg.data || {};
-        if (!startAt) return;
+        if (!Number.isFinite(startAt)) return;
+        setCdSeconds(seconds)
         setCountdownStartAt(startAt);
         setShowStartCD(true);
       });
@@ -328,7 +333,8 @@ const { atb, spend, setRate, setMax, reset } = useATB({
 
       // ホストのみ株価データ初期化と配信開始
       if (isHost) {
-        const startAt = Date.now() + 3000; // 3秒後にカウントダウン開始
+        const seconds = 3;
+        const startAt = Date.now() + seconds * 1000; // 3秒後にカウントダウン開始
         await ch.publish("start-countdown", { startAt, seconds: 5 });
 
         const seed = Date.now();
@@ -703,7 +709,8 @@ const onTimeUp = async () => {
           <div className={styles.timerWrapper}>
             <GameTimer
               duration={GAME_DURATION}
-              onTimeUp={onTimeUp}   // ← ここを差し替え
+              startAt={gameStartAt}
+              onTimeUp={onTimeUp}
             />
           </div>
         </div>
@@ -711,8 +718,11 @@ const onTimeUp = async () => {
         {showStartCD && countdownStartAt && (
           <StartCountdown
             startAt={countdownStartAt}
-            seconds={3}
-            onFinish={() => setShowStartCD(false)}
+            seconds={cdSeconds}
+            onFinish={() => {
+              setShowStartCD(false);
+              setGameStartAt(Date.now());
+            }}
           />
         )}
 

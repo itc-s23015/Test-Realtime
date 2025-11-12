@@ -3,22 +3,29 @@
 import React, { useEffect, useState, useRef } from "react";
 import styles from "../styles/GameTimer.module.css";
 
-const GameTimer = ({ duration = 300, onTimeUp }) =>{
+const GameTimer = ({ duration = 300, onTimeUp, startAt }) =>{
   const [timeLeft, setTimeLeft] = useState(duration);
-  const startTimeRef = useRef(Date.now());
+  // const startTimeRef = useRef(Date.now());
   const rafRef = useRef(null);
   const hasCalledTimeUp = useRef(false);
 
    useEffect(() => {
+    setTimeLeft(duration);
+    hasCalledTimeUp.current = false;
+    // if (!startAt) {
+    //   localStartRef.current = Date.now();
+    // }
+  }, [duration, startAt]);
+
+   useEffect(() => {
+    if (startAt == null) return;
     const update = () => {
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const baseMs = startAt;
+      const elapsed = Math.max(0, Math.floor((Date.now() - baseMs) / 1000));
       const remaining = Math.max(duration - elapsed, 0);
 
       // 1秒ごとにのみstate更新 → 無駄な再レンダリング防止
-      setTimeLeft((prev) => {
-        if (Math.abs(prev - remaining) >= 1) return remaining;
-        return prev;
-      });
+      setTimeLeft((prev) => (Math.abs(prev - remaining) >= 1 ? remaining : prev));
 
       // 終了時コールバック
       if (remaining <= 0 && !hasCalledTimeUp.current) {
@@ -44,7 +51,7 @@ const GameTimer = ({ duration = 300, onTimeUp }) =>{
       cancelAnimationFrame(rafRef.current);
       document.removeEventListener("visibilitychange", handleVisible);
     };
-  }, [duration, onTimeUp]);
+  }, [duration, onTimeUp, startAt]);
 
   // 表示用フォーマット
   const mins = Math.floor(timeLeft / 60);
