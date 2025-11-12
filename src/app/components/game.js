@@ -694,39 +694,40 @@ const onTimeUp = async () => {
           </div>
         )}
 
-        {/* プレイヤー情報表示 */}
-        {roomNumber && money !== null && holding !== null && (
-          <PlayerInfo
-            money={money}
-            holding={holding}
-            roomNumber={roomNumber}
-          />
-        )}
- 
-        {/* ターゲット選択UI */}
-{/*         <TargetSelector
-           otherPlayers={otherPlayers}
-          selectedTarget={selectedTarget}
-          onTargetSelect={handleTargetSelect}
-        /> */}
-        
-        {/* 株価チャート */}
-        {stockData.length > 0 && <StockChart stockData={stockData} />}
+<div className={styles.contentGrid}>
+  {/* 左：プレイヤー情報＋チャート */}
+  <section className={styles.leftCol}>
+    {roomNumber && money !== null && holding !== null && (
+      <PlayerInfo
+        money={money}
+        holding={holding}
+        roomNumber={roomNumber}
+      />
+    )}
+    {stockData.length > 0 && <StockChart stockData={stockData} />}
+  </section>
 
-        {/* 取引パネル */}
-        {currentPrice > 0 && (
-          <TradingPanel
-            currentPrice={currentPrice}
-            money={money}
-            holding={holding}
-            onTrade={handleTrade}
-          />
-        )}
-        {/* ATBゲージ */}
-        <ATBBar value={atb} max={100} label="ATB" />
+  {/* 右：取引パネル＋ATB＋手札（常時見えるよう固定） */}
+  <aside className={styles.rightCol}>
+    <div className={styles.stickyPanel}>
+      {currentPrice > 0 && (
+        <TradingPanel
+          currentPrice={currentPrice}
+          money={money}
+          holding={holding}
+          onTrade={handleTrade}
+        />
+      )}
 
-        {/* 手札表示 */}
+      <ATBBar value={atb} max={100} label="ATB" />
+
+      <div className={styles.handScroll}>
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
+      </div>
+    </div>
+  </aside>
+</div>
+
       </div>
 
       {/* 左サイドバー：メモ/ヘルプ */}
