@@ -73,6 +73,7 @@ export const CARD_DEFINITIONS = {
       id: CARD_TYPES.DRAW_TWO,
       name: '追加ドロー',
       description: 'カードを2枚ドロー（自分専用）',
+      emoji: '🎴',
       rarity: RARITY.RARE,
       needsTarget: false,
       cooldownMs: 4000,
@@ -83,6 +84,7 @@ export const CARD_DEFINITIONS = {
       id: CARD_TYPES.GUARD_SHIELD,
       name: 'ガード',
       description: '次の被弾を1回だけ無効化（自分専用）',
+      emoji: '🛡️',
       rarity: RARITY.NORMAL,
       needsTarget: false,
       cooldownMs: 6000,
@@ -93,11 +95,11 @@ export const CARD_DEFINITIONS = {
         id: CARD_TYPES.INCREASE_HOLDINGS_SMALL,
         name: '持ち株増加(小)',
         description: '持ち株を1増やす',
-        emoji: '🗡️',
+        emoji: '📈',
         needsTarget: false,
         color: '#10b981',
         hoverColor: '#059669',
-        effectAmount: +1,
+        effectAmount: 1,
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.NORMAL,
@@ -108,11 +110,11 @@ export const CARD_DEFINITIONS = {
         id: CARD_TYPES.INCREASE_HOLDINGS_MEDIUM,
         name: '持ち株増加(中)',
         description: '持ち株を3増やす',
-        emoji: '🗡️',
+        emoji: '📊',
         needsTarget: false,
-       color: '#3b82f6',
+        color: '#3b82f6',
         hoverColor: '#2563eb',
-        effectAmount: +3,
+        effectAmount: 3,
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.RARE,
@@ -123,11 +125,11 @@ export const CARD_DEFINITIONS = {
         id: CARD_TYPES.INCREASE_HOLDINGS_LARGE,
         name: '持ち株増加(大)',
         description: '持ち株を5増やす',
-        emoji: '🗡️',
+        emoji: '💹',
         needsTarget: false,
         color: '#ef4444',
         hoverColor: '#dc2626',
-        effectAmount: +5,
+        effectAmount: 5,
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.SUPERRARE,
@@ -145,7 +147,7 @@ function ensurePlayerShape(p) {
         name: p?.name ?? '',
         money: typeof p?.money === 'number' ? p.money : 0,
         holding: typeof p?.holding === 'number' ? p.holding : 0,
-        guards: typeof p?.guards === 'number' ? p.guards : 0, // ガードスタック
+        guards: typeof p?.guards === 'number' ? p.guards : 0,
     };
 }
 
@@ -173,23 +175,32 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
     }
 
     // 不変コピー
-    const newState = { players: { ...gameState.players } };
-    const self = ensurePlayerShape(newState.players[playerId] || {});
-    newState.players[playerId] = self;
+    const newState = { players: {} };
+    Object.keys(gameState.players).forEach(id => {
+        newState.players[id] = ensurePlayerShape(gameState.players[id]);
+    });
+
+    const self = newState.players[playerId];
+    if (!self) {
+        newState.players[playerId] = ensurePlayerShape({});
+    }
 
     let log = '';
     let drawCount = 0;
 
     // ターゲットの決定（自分専用カードは自分がターゲット）
     const victimId = card.needsTarget ? targetId : playerId;
-    const victim = ensurePlayerShape(newState.players[victimId] || {});
-    newState.players[victimId] = victim;
+    
+    if (!newState.players[victimId]) {
+        newState.players[victimId] = ensurePlayerShape({});
+    }
+    const victim = newState.players[victimId];
 
     // ガード消費ヘルパー（攻撃カードのみ）
     const consumeGuardIfAny = () => {
         if (victim.guards > 0) {
             victim.guards -= 1;
-            return true; // ガードで無効化
+            return true;
         }
         return false;
     };
@@ -228,15 +239,17 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         case CARD_TYPES.INCREASE_HOLDINGS_SMALL:
         case CARD_TYPES.INCREASE_HOLDINGS_MEDIUM:
         case CARD_TYPES.INCREASE_HOLDINGS_LARGE:
-            // 保有株を増やす
+            // 保有株を増やす（自分専用）
             const prevHolding = Number(self.holding ?? 0);
             const increaseAmount = Number(card.effectAmount ?? 0);
             self.holding = prevHolding + increaseAmount;
             
-            log = `➕ ${self.name || playerId} の保有株を ${increaseAmount} 株増加`;
+            console.log(`📊 INCREASE実行: ${prevHolding} + ${increaseAmount} = ${self.holding}`);
+            
+            log = `📈 ${self.name || playerId} の保有株を ${increaseAmount} 株増加`;
             return {
                 success: true,
-                message: `${card.name} 成功！保有株が${increaseAmount}増加しました！`,
+                message: `${card.name} 成功！ 保有株が${increaseAmount}増加しました！`,
                 gameState: newState,
                 needsSync: true,
                 log,
@@ -280,15 +293,12 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
 
 // ===================== ランダムドロー（重み付き） =====================
 
-// 再現性が必要な時のシード付き乱数
 export function createSeededRng(seed = Date.now()) {
-    // Park–Miller (minimal standard)
     let s = seed % 2147483647;
     if (s <= 0) s += 2147483646;
     return () => (s = (s * 16807) % 2147483647) / 2147483647;
 }
 
-// レアリティを重みで1つ選ぶ
 function pickRarity(rng = Math.random) {
     const entries = [
         [RARITY.NORMAL, RARITY_META[RARITY.NORMAL].weight],
@@ -304,7 +314,6 @@ function pickRarity(rng = Math.random) {
     return RARITY.NORMAL;
 }
 
-// レアリティを決めて、その中から1枚
 export function drawRandomCard({ rng } = {}) {
     const random = rng || Math.random;
     const rarity = pickRarity(random);
@@ -314,7 +323,6 @@ export function drawRandomCard({ rng } = {}) {
     return list[idx];
 }
 
-// n枚ドロー（noDuplicates で同じIDを避ける）
 export function drawCards(n = 1, { rng, noDuplicates = false } = {}) {
     const random = rng || Math.random;
     const result = [];
@@ -333,7 +341,6 @@ export function drawCards(n = 1, { rng, noDuplicates = false } = {}) {
     return result;
 }
 
-// デッキ生成＆シャッフル
 export function buildDeck({ size = 40, rng } = {}) {
     const random = rng || Math.random;
     const deck = [];
