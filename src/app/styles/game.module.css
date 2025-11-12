@@ -77,3 +77,50 @@
   color: #374151;
   line-height: 1.7;
 }
+
+/* 2カラム骨格：左は可変、右は固定幅 */
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px; /* 右幅は好みで調整 */
+  gap: 16px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.leftCol {
+  display: grid;
+  gap: 16px;
+  min-width: 0; /* チャートのはみ出し対策 */
+}
+
+.rightCol {
+  min-width: 0;
+}
+
+/* 右パネルをスクロール固定に */
+.stickyPanel {
+  position: sticky;
+  top: 96px; /* ヘッダーやタイマーの高さに合わせて調整 */
+  display: grid;
+  gap: 12px;
+}
+
+/* 手札を右カラム内で独立スクロール可能に */
+.handScroll {
+  max-height: 360px;  /* 端末に合わせて調整 */
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+/* スマホ等では1カラムにフォールバック */
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+  .stickyPanel {
+    position: static;
+  }
+}
