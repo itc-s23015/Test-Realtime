@@ -233,10 +233,10 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
             const increaseAmount = Number(card.effectAmount ?? 0);
             self.holding = prevHolding + increaseAmount;
             
-            log = `➕ ${self.name || playerId} → ${victim.name || victimId} の保有株を ${actualIncrease} 株増加`;
+            log = `➕ ${self.name || playerId} の保有株を ${increaseAmount} 株増加`;
             return {
                 success: true,
-                message: `${card.name} 成功！ ${victim.name}の保有株が${actualIncrease}増加しました！`,
+                message: `${card.name} 成功！保有株が${increaseAmount}増加しました！`,
                 gameState: newState,
                 needsSync: true,
                 log,
