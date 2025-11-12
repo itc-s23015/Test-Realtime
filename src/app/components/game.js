@@ -84,6 +84,10 @@ export default function Game() {
   const [results, setResults] = useState([]);
   const resultsMapRef = useRef(new Map());
 
+   // カウントダウン＆ゲームタイマー開始時刻
+  const [cdSeconds, setCdSeconds] = useState(5);
+  const [gameStartAt, setGameStartAt] = useState(null); // ms (number)
+
    //カウントダウン
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
@@ -325,7 +329,8 @@ export default function Game() {
       //開始までのカウントダウン
        ch.subscribe("start-countdown", (msg) => {
         const { startAt, seconds = 5 } = msg.data || {};
-        if (!startAt) return;
+        if (!Number.isFinite(startAt)) return;
+        setCdSeconds(seconds)
         setCountdownStartAt(startAt);
         setShowStartCD(true);
       });
@@ -335,7 +340,8 @@ export default function Game() {
       const isHost = ids[0] === clientId;
 
       if (isHost) {
-        const startAt = Date.now() + 3000; // 3秒後にカウントダウン開始
+        const seconds = 3;
+        const startAt = Date.now() + seconds * 1000; // 3秒後にカウントダウン開始
         await ch.publish("start-countdown", { startAt, seconds: 5 });
 
         const seed = Date.now();
@@ -713,6 +719,7 @@ export default function Game() {
           <div className={styles.timerWrapper}>
             <GameTimer
               duration={GAME_DURATION}
+              startAt={gameStartAt}
               onTimeUp={onTimeUp}
             />
           </div>
@@ -721,8 +728,11 @@ export default function Game() {
         {showStartCD && countdownStartAt && (
           <StartCountdown
             startAt={countdownStartAt}
-            seconds={3}
-            onFinish={() => setShowStartCD(false)}
+            seconds={cdSeconds}
+            onFinish={() => {
+              setShowStartCD(false);
+              setGameStartAt(Date.now());
+            }}
           />
         )}
 
