@@ -9,6 +9,9 @@ export const CARD_TYPES = {
   REDUCE_HOLDINGS_LARGE: 'REDUCE_HOLDINGS_LARGE',
   DRAW_TWO: 'DRAW_TWO',
   GUARD_SHIELD: 'GUARD_SHIELD',
+  INCREASE_HOLDINGS_SMALL: 'INCREASE_HOLDINGS_SMALL',
+  INCREASE_HOLDINGS_MEDIUM: 'INCREASE_HOLDINGS_MEDIUM',
+  INCREASE_HOLDINGS_LARGE: 'INCREASE_HOLDINGS_LARGE',
 };
 
 export const RARITY = {
@@ -86,6 +89,51 @@ export const CARD_DEFINITIONS = {
       effectAmount: 1,
       atbCost: 35,
   },
+  [CARD_TYPES.INCREASE_HOLDINGS_SMALL]: {
+        id: CARD_TYPES.INCREASE_HOLDINGS_SMALL,
+        name: '持ち株増加(小)',
+        description: '持ち株を1増やす',
+        emoji: '🗡️',
+        needsTarget: false,
+        color: '#10b981',
+        hoverColor: '#059669',
+        effectAmount: +1,
+        imageSrc: '',
+        imageAlt: '',
+        rarity: RARITY.NORMAL,
+        atbCost: 30,
+        cooldownMs: 3000,
+    },
+    [CARD_TYPES.INCREASE_HOLDINGS_MEDIUM]: {
+        id: CARD_TYPES.INCREASE_HOLDINGS_MEDIUM,
+        name: '持ち株増加(中)',
+        description: '持ち株を3増やす',
+        emoji: '🗡️',
+        needsTarget: false,
+       color: '#3b82f6',
+        hoverColor: '#2563eb',
+        effectAmount: +3,
+        imageSrc: '',
+        imageAlt: '',
+        rarity: RARITY.RARE,
+        atbCost: 50,
+        cooldownMs: 3000,
+    },
+    [CARD_TYPES.INCREASE_HOLDINGS_LARGE]: {
+        id: CARD_TYPES.INCREASE_HOLDINGS_LARGE,
+        name: '持ち株増加(大)',
+        description: '持ち株を5増やす',
+        emoji: '🗡️',
+        needsTarget: false,
+        color: '#ef4444',
+        hoverColor: '#dc2626',
+        effectAmount: +5,
+        imageSrc: '',
+        imageAlt: '',
+        rarity: RARITY.SUPERRARE,
+        atbCost: 70,
+        cooldownMs: 3000,
+    },
 };   
 
 // カード情報を配列へ
@@ -172,6 +220,23 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
             return {
                 success: true,
                 message: `${card.name} 成功！ ${victim.name}の保有株が${actualDamage}減少しました！`,
+                gameState: newState,
+                needsSync: true,
+                log,
+            };
+
+        case CARD_TYPES.INCREASE_HOLDINGS_SMALL:
+        case CARD_TYPES.INCREASE_HOLDINGS_MEDIUM:
+        case CARD_TYPES.INCREASE_HOLDINGS_LARGE:
+            // 保有株を増やす
+            const prevHolding = Number(self.holding ?? 0);
+            const increaseAmount = Number(card.effectAmount ?? 0);
+            self.holding = prevHolding + increaseAmount;
+            
+            log = `➕ ${self.name || playerId} → ${victim.name || victimId} の保有株を ${actualIncrease} 株増加`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ ${victim.name}の保有株が${actualIncrease}増加しました！`,
                 gameState: newState,
                 needsSync: true,
                 log,
