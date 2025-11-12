@@ -743,25 +743,18 @@ const onTimeUp = async () => {
     {stockData.length > 0 && <StockChart stockData={stockData} />}
   </section>
 
-  {/* 右：取引パネル＋ATB＋手札（常時見えるよう固定） */}
-  <aside className={styles.rightCol}>
-    <div className={styles.stickyPanel}>
-      {currentPrice > 0 && (
-        <TradingPanel
-          currentPrice={currentPrice}
-          money={money}
-          holding={holding}
-          onTrade={handleTrade}
-        />
-      )}
-
-      <ATBBar value={atb} max={100} label="ATB" />
-
-      <div className={styles.handScroll}>
-        <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
-      </div>
-    </div>
-  </aside>
+{/* 右カラム */}
+<div className={styles.rightCol}>
+  {/* ← これを追加：中で高さを伸ばすボックス */}
+  <div className={styles.tradePanelBox}>
+    <TradingPanel
+      currentPrice={currentPrice}
+      money={money}
+      holding={holding}
+      onTrade={handleTrade}
+    />
+  </div>
+</div>
 </div>
 
       </div>
@@ -796,6 +789,14 @@ const onTimeUp = async () => {
         onSelect={handleTargetSelect}
       />
       </SideBar>
+      {/* 右サイドバーが閉じている時だけ、空いた右端に手札をドック表示 */}
+{!isRightSidebarOpen && (
+  <div className={styles.rightSidebarSlot}>
+      <ATBBar value={atb} max={100} label="ATB" />
+    <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
+  </div>
+)}
+
             {/* === リザルトモーダル === */}
             <ResultModal
               open={isGameOver}
