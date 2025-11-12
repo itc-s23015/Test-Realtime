@@ -15,6 +15,7 @@ import TargetSelector from "./TargetSelector";
 import RightUserList from "./RightUserList";
 import styles from "../styles/game.module.css";
 import  ResultModal  from "../game/ResultModal";
+import StartCountdown from "./StartCountdown";
 import useATB from "./atb/useATB";
 import ATBBar from "./ATBBar";
 
@@ -83,6 +84,10 @@ export default function Game() {
   const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
   const resultsMapRef = useRef(new Map());    // 重複上書き用
 
+   //カウントダウン
+  const [showStartCD, setShowStartCD] = useState(false);
+  const [countdownStartAt, setCountdownStartAt] = useState(null);
+  
   // サイドバー開閉状態
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
@@ -243,6 +248,18 @@ const { atb, spend, setRate, setMax, reset } = useATB({
     setRoomNumber(r.toUpperCase());
   }, [router]);
 
+   const beginGame = useCallback(async () => {
+    if (!chRef.current || beginRef.current) return;
+    beginRef.current = true;
+
+    const seed = Date.now();
+    const initialData = generateStockData(seed);
+    setStockData(initialData);
+
+    await chRef.current.publish("stock-init", { seed, data: initialData, by: clientId });
+    startAutoUpdate(chRef.current, initialData);
+  }, [clientId]);
+
   // 初期手札取得(3枚)
   useEffect(() => {
     if (!clientId || !roomU) return;
@@ -296,6 +313,14 @@ const { atb, spend, setRate, setMax, reset } = useATB({
       await refreshPlayers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
+      //開始までのカウントダウン
+       ch.subscribe("start-countdown", (msg) => {
+        const { startAt, seconds = 5 } = msg.data || {};
+        if (!startAt) return;
+        setCountdownStartAt(startAt);
+        setShowStartCD(true);
+      });
+
       // ホスト決定（clientIdの辞書順最小）
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
@@ -303,6 +328,9 @@ const { atb, spend, setRate, setMax, reset } = useATB({
 
       // ホストのみ株価データ初期化と配信開始
       if (isHost) {
+        const startAt = Date.now() + 3000; // 3秒後にカウントダウン開始
+        await ch.publish("start-countdown", { startAt, seconds: 5 });
+
         const seed = Date.now();
         const initialData = generateStockData(seed);
         setStockData(initialData);
@@ -679,6 +707,14 @@ const onTimeUp = async () => {
             />
           </div>
         </div>
+
+        {showStartCD && countdownStartAt && (
+          <StartCountdown
+            startAt={countdownStartAt}
+            seconds={3}
+            onFinish={() => setShowStartCD(false)}
+          />
+        )}
 
         {/* エラー/成功メッセージバー */}
         {error && (
