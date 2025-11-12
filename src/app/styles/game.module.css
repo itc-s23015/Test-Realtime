@@ -95,7 +95,23 @@
 
 .rightCol {
   min-width: 0;
+}/* サイドバーを閉じたときの「空白」エリアに手札をドック表示 */
+.rightSidebarSlot {
+  position: fixed;
+  right: 0;
+  top: 96px;               /* ヘッダー+タイマー分。70〜120pxで調整 */
+  width: 320px;            /* 右サイドバーの幅に合わせる */
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  padding: 8px;
+  border-left: 1px solid #e5e7eb;
+  background: rgba(255,255,255,0.6);  /* ダークなら #0f0f0fcc など */
+  backdrop-filter: blur(6px);
+  z-index: 20;             /* 本体より上、サイドバーより下にしたいなら 20〜30 */
 }
+
+/* サイドバーを開いたときにはそもそも非表示（JSXで制御済み） */
+
 
 /* 右パネルをスクロール固定に */
 .stickyPanel {
@@ -122,5 +138,66 @@
   }
   .stickyPanel {
     position: static;
+  }
+}
+
+/* サイドバーを閉じたときの「空白」エリアに手札をドック表示 */
+.rightSidebarSlot {
+  position: fixed;
+  right: 0;
+  top: 130px;               /* ヘッダー+タイマー分。70〜120pxで調整 */
+  width: 320px;            /* 右サイドバーの幅に合わせる */
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+  padding: 8px;
+  border-left: 1px solid #e5e7eb;
+  background: rgba(255,255,255,0.6);  /* ダークなら #0f0f0fcc など */
+  backdrop-filter: blur(6px);
+  z-index: 20;             /* 本体より上、サイドバーより下にしたいなら 20〜30 */
+}
+
+/* サイドバーを開いたときにはそもそも非表示（JSXで制御済み） */
+
+/* 2カラムの親 */
+.contentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px; /* 右カラム幅はお好みで */
+  gap: 16px;
+  align-items: start;
+}
+
+/* 右カラム：ヘッダーぶん差し引いて“縦いっぱい”に */
+.rightCol {
+  position: sticky;           /* スクロールしても右は見える */
+  top: 96px;                  /* ヘッダー+タイマーの高さに合わせて調整 */
+  height: calc(100vh - 96px - 16px); /* 画面高 - 上の余白 - 下の余白 */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 取引パネルを上下に伸ばす“器” */
+.tradePanelBox {
+  flex: 1;                    /* ← これで縦に伸びる本体 */
+  display: flex;              /* 中のパネルがheight:100%になるように */
+  min-height: 0;              /* 子のoverflow計算を正しくするため */
+  border: 1px solid #e5e7eb;  /* “枠”が上下まで伸びる */
+  border-radius: 12px;
+  overflow: auto;             /* 中身が溢れたら内側スクロール */
+  background: #fff;           /* ダークなら#0f0f0f等に */
+  padding: 12px;              /* 内側余白はお好みで */
+}
+
+/* スマホ等では1カラムにフォールバック */
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+  .rightCol {
+    position: static;
+    height: auto;
+  }
+  .tradePanelBox {
+    max-height: none;
   }
 }
