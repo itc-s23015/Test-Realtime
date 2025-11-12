@@ -15,6 +15,7 @@ import TargetSelector from "./TargetSelector";
 import RightUserList from "./RightUserList";
 import styles from "../styles/game.module.css";
 import  ResultModal  from "../game/ResultModal";
+import StartCountdown from "./StartCountdown";
 import useATB from "./atb/useATB";
 import ATBBar from "./ATBBar";
 
@@ -83,6 +84,10 @@ export default function Game() {
   const [results, setResults] = useState([]);
   const resultsMapRef = useRef(new Map());
 
+   //カウントダウン
+  const [showStartCD, setShowStartCD] = useState(false);
+  const [countdownStartAt, setCountdownStartAt] = useState(null);
+  
   // サイドバー開閉状態
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
@@ -242,6 +247,18 @@ export default function Game() {
     setRoomNumber(r.toUpperCase());
   }, [router]);
 
+   const beginGame = useCallback(async () => {
+    if (!chRef.current || beginRef.current) return;
+    beginRef.current = true;
+
+    const seed = Date.now();
+    const initialData = generateStockData(seed);
+    setStockData(initialData);
+
+    await chRef.current.publish("stock-init", { seed, data: initialData, by: clientId });
+    startAutoUpdate(chRef.current, initialData);
+  }, [clientId]);
+
   // 初期手札取得(3枚)
   useEffect(() => {
     if (!clientId || !roomU) return;
@@ -305,11 +322,22 @@ export default function Game() {
       await refreshPlayers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
+      //開始までのカウントダウン
+       ch.subscribe("start-countdown", (msg) => {
+        const { startAt, seconds = 5 } = msg.data || {};
+        if (!startAt) return;
+        setCountdownStartAt(startAt);
+        setShowStartCD(true);
+      });
+
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
 
       if (isHost) {
+        const startAt = Date.now() + 3000; // 3秒後にカウントダウン開始
+        await ch.publish("start-countdown", { startAt, seconds: 5 });
+
         const seed = Date.now();
         const initialData = generateStockData(seed);
         setStockData(initialData);
@@ -690,6 +718,15 @@ export default function Game() {
           </div>
         </div>
 
+        {showStartCD && countdownStartAt && (
+          <StartCountdown
+            startAt={countdownStartAt}
+            seconds={3}
+            onFinish={() => setShowStartCD(false)}
+          />
+        )}
+
+        {/* エラー/成功メッセージバー */}
         {error && (
           <div
             className={`${styles.errorBar} ${
@@ -703,6 +740,9 @@ export default function Game() {
           </div>
         )}
 
+    <div className={styles.contentGrid}>
+      {/* 左：プレイヤー情報＋チャート */}
+      <section className={styles.leftCol}>
         {roomNumber && money !== null && holding !== null && (
           <PlayerInfo
             money={money}
@@ -710,21 +750,26 @@ export default function Game() {
             roomNumber={roomNumber}
           />
         )}
-
         {stockData.length > 0 && <StockChart stockData={stockData} />}
+      </section>
 
-        {currentPrice > 0 && (
-          <TradingPanel
-            currentPrice={currentPrice}
-            money={money}
-            holding={holding}
-            onTrade={handleTrade}
-          />
-        )}
-
+    {/* 右カラム */}
+    <div className={styles.rightCol}>
+      {/* ← これを追加：中で高さを伸ばすボックス */}
+      <div className={styles.tradePanelBox}>
+        <TradingPanel
+          currentPrice={currentPrice}
+          money={money}
+          holding={holding}
+          onTrade={handleTrade}
+        />
+      </div>
+  </div>
+</div>
+   
         <ATBBar value={atb} max={100} label="ATB" />
-
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
+
       </div>
 
       <SideBar
@@ -756,17 +801,26 @@ export default function Game() {
         />
       </SideBar>
 
-      <ResultModal
-        open={isGameOver}
-        results={results}
-        onClose={() => setIsGameOver(false)}
-        onRetry={() => {
-          window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
-        }}
-        onBack={() => {
-          window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
-        }}
-      />
+      {/* 右サイドバーが閉じている時だけ、空いた右端に手札をドック表示 */}
+      {!isRightSidebarOpen && (
+        <div className={styles.rightSidebarSlot}>
+            <ATBBar value={atb} max={100} label="ATB" />
+          <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
+        </div>
+      )}
+
+            {/* === リザルトモーダル === */}
+            <ResultModal
+              open={isGameOver}
+              results={results}
+              onClose={() => setIsGameOver(false)}
+              onRetry={() => {
+                window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
+              }}
+              onBack={() => {
+                window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
+              }}
+            />
     </div>
   );
 }
