@@ -1,0 +1,29 @@
+.overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(1px);
+}
+
+.number{
+  font-size: clamp(56px, 10vw, 140px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 8px 28px rgba(0,0,0,.45);
+  letter-spacing: 0.05em;
+  transform: scale(1);
+  animation: pop .25s ease;
+}
+
+.start{
+  composes: number;
+  color: #34d399; /* START は少し映える色 */
+}
+
+@keyframes pop {
+  from { transform: scale(.9); opacity: .6; }
+  to   { transform: scale(1);  opacity: 1; }
+}
