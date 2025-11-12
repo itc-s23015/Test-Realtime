@@ -1,56 +1,35 @@
 /**
  * カードの種類を定義
- * 今後カードを追加する場合はここで追加してください
- * CARD_DEFINITIONS にカード詳細を追加（rarity必須）
- * executeCardEffect() に効果処理を追加
- * 必要に応じて専用の実行関数を作成
+ * distribution版をベースに、ガード・2枚ドロー・ATBコスト機能を追加
  */
 
 export const CARD_TYPES = {
-    REDUCE_HOLDINGS_SMALL: 'REDUCE_HOLDINGS_SMALL',
-    REDUCE_HOLDINGS_MEDIUM: 'REDUCE_HOLDINGS_MEDIUM',
-    REDUCE_HOLDINGS_LARGE: 'REDUCE_HOLDINGS_LARGE',
+  REDUCE_HOLDINGS_SMALL: 'REDUCE_HOLDINGS_SMALL',
+  REDUCE_HOLDINGS_MEDIUM: 'REDUCE_HOLDINGS_MEDIUM',
+  REDUCE_HOLDINGS_LARGE: 'REDUCE_HOLDINGS_LARGE',
+  DRAW_TWO: 'DRAW_TWO',
+  GUARD_SHIELD: 'GUARD_SHIELD',
 };
 
-// レアリティ3段階
 export const RARITY = {
-    NORMAL: 'NORMAL',
-    RARE: 'RARE',
-    SUPERRARE: 'SUPERRARE',
+  NORMAL: 'NORMAL',
+  RARE: 'RARE',
+  SUPERRARE: 'SUPERRARE',
 };
 
 export const RARITY_META = {
-    [RARITY.NORMAL]: { label: 'N', weight: 70, backgroudColor: '#6b7280' },
-    [RARITY.RARE]: { label: 'R', weight: 25, backgroudColor: '#3b82f6' },
-    [RARITY.SUPERRARE]: { label: 'SR', weight: 5, backgroudColor: '#f59e0b' },
+  [RARITY.NORMAL]: { label: 'N', weight: 70 },
+  [RARITY.RARE]: { label: 'R', weight: 25 },
+  [RARITY.SUPERRARE]: { label: 'SR', weight: 5 },
 };
 
-
-/**
- * カードのマスターデータ
- * 
- * 各カードの定義フォーマット:
- * {
- *   id: string,           // CARD_TYPES の値
- *   name: string,         // カード名（表示用）
- *   description: string,  // 効果説明
- *   emoji: string,        // 絵文字アイコン
- *   cost: number,         // 使用コスト（将来実装用）
- *   needsTarget: boolean, // ターゲット選択が必要か
- *   color: string,        // カードの背景色
- *   hoverColor: string,   // ホバー時の色
- *   effectAmount: number, // 効果量（攻撃力など）
- *   rarity: RARITY        // ★3段階レアリティ（必須）
- * }
- */
-
+// 基本定義：UI用の名前・説明、要ターゲット、クールダウンなど
 export const CARD_DEFINITIONS = {
     [CARD_TYPES.REDUCE_HOLDINGS_SMALL]: {
         id: CARD_TYPES.REDUCE_HOLDINGS_SMALL,
         name: '小ダメージ攻撃(株)',
         description: '相手の保有株を1減らす',
         emoji: '🗡️',
-        cost: 0,
         needsTarget: true,
         color: '#10b981',
         hoverColor: '#059669',
@@ -58,40 +37,79 @@ export const CARD_DEFINITIONS = {
         imageSrc: '/image/cards/testCard.png',
         imageAlt: '小ダメージ攻撃(株)カードの画像',
         rarity: RARITY.NORMAL,
+        atbCost: 30,
+        cooldownMs: 3000,
     },
     [CARD_TYPES.REDUCE_HOLDINGS_MEDIUM]: {
         id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM,   
         name: '中ダメージ攻撃(株)',
         description: '相手の保有株を3減らす',
         emoji: '⚔️',
-        cost: 0,
         needsTarget: true,
         color: '#3b82f6',
         hoverColor: '#2563eb',
         effectAmount: -3,
         rarity: RARITY.RARE,
+        atbCost: 50,
+        cooldownMs: 5000,
     },
     [CARD_TYPES.REDUCE_HOLDINGS_LARGE]: {
         id: CARD_TYPES.REDUCE_HOLDINGS_LARGE,
         name: '大ダメージ攻撃(株)',
         description: '相手の保有株を5減らす',
         emoji: '💥',
-        cost: 0,
         needsTarget: true,
         color: '#ef4444',
         hoverColor: '#dc2626',
         effectAmount: -5,
         rarity: RARITY.SUPERRARE,
+        atbCost: 70,
+        cooldownMs: 8000,
     },
+    [CARD_TYPES.DRAW_TWO]: {
+      id: CARD_TYPES.DRAW_TWO,
+      name: '追加ドロー',
+      description: 'カードを2枚ドロー（自分専用）',
+      rarity: RARITY.RARE,
+      needsTarget: false,
+      cooldownMs: 4000,
+      effectAmount: 2,
+      atbCost: 40,
+    },
+    [CARD_TYPES.GUARD_SHIELD]: {
+      id: CARD_TYPES.GUARD_SHIELD,
+      name: 'ガード',
+      description: '次の被弾を1回だけ無効化（自分専用）',
+      rarity: RARITY.NORMAL,
+      needsTarget: false,
+      cooldownMs: 6000,
+      effectAmount: 1,
+      atbCost: 35,
+  },
 };   
 
-export function executeCardEffect(cardType, gameState, playerId, targetId = null) {
+// カード情報を配列へ
+export const CARD_LIST = Object.values(CARD_DEFINITIONS);
+
+// プレイヤーステートの形状を保証
+function ensurePlayerShape(p) {
+    return {
+        name: p?.name ?? '',
+        money: typeof p?.money === 'number' ? p.money : 0,
+        holding: typeof p?.holding === 'number' ? p.holding : 0,
+        guards: typeof p?.guards === 'number' ? p.guards : 0, // ガードスタック
+    };
+}
+
+export function executeCardEffect(cardType, gameState, playerId, targetId = null, opts = {}) {
     const card = CARD_DEFINITIONS[cardType];
     if (!card) {
         return {
             success: false,
             message: '無効なカードタイプです。',
-            gameState
+            gameState,
+            needsSync: false,
+            log: '無効なカードタイプ',
         };
     }
     
@@ -100,49 +118,169 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         return {
             success: false,
             message: 'このカードはターゲットが必要です。',
-            gameState
+            gameState,
+            needsSync: false,
+            log: 'ターゲット未選択',
         };
     }
 
-    // カードタイプごとに振り分け
-    // 攻撃タイプ`
+    // 不変コピー
+    const newState = { players: { ...gameState.players } };
+    const self = ensurePlayerShape(newState.players[playerId] || {});
+    newState.players[playerId] = self;
+
+    let log = '';
+    let drawCount = 0;
+
+    // ターゲットの決定（自分専用カードは自分がターゲット）
+    const victimId = card.needsTarget ? targetId : playerId;
+    const victim = ensurePlayerShape(newState.players[victimId] || {});
+    newState.players[victimId] = victim;
+
+    // ガード消費ヘルパー（攻撃カードのみ）
+    const consumeGuardIfAny = () => {
+        if (victim.guards > 0) {
+            victim.guards -= 1;
+            return true; // ガードで無効化
+        }
+        return false;
+    };
+
+    // カードタイプごとに効果を実行
     switch (cardType) {
         case CARD_TYPES.REDUCE_HOLDINGS_SMALL:
         case CARD_TYPES.REDUCE_HOLDINGS_MEDIUM:
         case CARD_TYPES.REDUCE_HOLDINGS_LARGE:
-            return executeReduceHoldingsCard(card, gameState, playerId, targetId);
+            // 攻撃系：ガード判定
+            if (consumeGuardIfAny()) {
+                log = `🛡️ ${victim.name || victimId} のガードが発動し、効果は無効化！`;
+                return { 
+                    success: true, 
+                    needsSync: true, 
+                    gameState: newState, 
+                    log,
+                    message: log,
+                };
+            }
 
-    // 新しいタイプのカードを追加する場合はここに記入
+            // 保有株を減らす
+            const prev = Number(victim.holding ?? 0);
+            victim.holding = Math.max(0, prev + Number(card.effectAmount ?? 0));
+            const actualDamage = prev - victim.holding;
+            
+            log = `⚔️ ${self.name || playerId} → ${victim.name || victimId} の保有株を ${actualDamage} 株削減`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ ${victim.name}の保有株が${actualDamage}減少しました！`,
+                gameState: newState,
+                needsSync: true,
+                log,
+            };
+
+        case CARD_TYPES.DRAW_TWO:
+            // 2枚ドロー（自分専用）
+            drawCount = card.effectAmount ?? 2;
+            log = `🃏 ${self.name || playerId} がカードを ${drawCount} 枚ドロー`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ ${drawCount}枚ドローします`,
+                gameState: newState,
+                needsSync: false,
+                drawCount,
+                log,
+            };
+
+        case CARD_TYPES.GUARD_SHIELD:
+            // ガード付与（自分専用）
+            self.guards += card.effectAmount ?? 1;
+            log = `🛡️ ${self.name || playerId} にガードを付与（残り${self.guards}）`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ガードを獲得しました`,
+                gameState: newState,
+                needsSync: true,
+                log,
+            };
+
         default:
             return {
                 success: false,
                 message: 'このカードの効果はまだ実装されていません。',
-                gameState
+                gameState,
+                needsSync: false,
+                log: '未実装カード',
             };
     }
 }
 
-function executeReduceHoldingsCard(card, gameState, playerId, targetId) {
-    const newState = { ...gameState };
-    const target = newState.players[targetId];
+// ===================== ランダムドロー（重み付き） =====================
 
-    if (!target) {
-        return {
-            success: false,
-            message: 'ターゲットが見つかりません。',
-            gameState
-        };
+// 再現性が必要な時のシード付き乱数
+export function createSeededRng(seed = Date.now()) {
+    // Park–Miller (minimal standard)
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return () => (s = (s * 16807) % 2147483647) / 2147483647;
+}
+
+// レアリティを重みで1つ選ぶ
+function pickRarity(rng = Math.random) {
+    const entries = [
+        [RARITY.NORMAL, RARITY_META[RARITY.NORMAL].weight],
+        [RARITY.RARE, RARITY_META[RARITY.RARE].weight],
+        [RARITY.SUPERRARE, RARITY_META[RARITY.SUPERRARE].weight],
+    ];
+    const total = entries.reduce((a, [, w]) => a + w, 0);
+    let r = rng() * total;
+    for (const [rarity, w] of entries) {
+        r -= w;
+        if (r < 0) return rarity;
     }
+    return RARITY.NORMAL;
+}
 
-    // 保有株を減らす
-    const prev = Number(target.holding ?? 0);
-    target.holding = Math.max(0, prev + Number(card.effectAmount ?? 0));
-    const actualDamage = prev - target.holding;
-    
-    return {
-        success: true,
-        message: `${card.name}success! ${target.name}の保有株が${actualDamage}減少しました！`,
-        gameState: newState,
-        needsSync: true
-    };
+// レアリティを決めて、その中から1枚
+export function drawRandomCard({ rng } = {}) {
+    const random = rng || Math.random;
+    const rarity = pickRarity(random);
+    const pool = CARD_LIST.filter((c) => c.rarity === rarity);
+    const list = pool.length ? pool : CARD_LIST;
+    const idx = Math.floor(random() * list.length);
+    return list[idx];
+}
+
+// n枚ドロー（noDuplicates で同じIDを避ける）
+export function drawCards(n = 1, { rng, noDuplicates = false } = {}) {
+    const random = rng || Math.random;
+    const result = [];
+    const seen = new Set();
+    for (let i = 0; i < n; i++) {
+        let card = drawRandomCard({ rng: random });
+        if (noDuplicates) {
+            let guard = 0;
+            while (seen.has(card.id) && guard++ < 20) {
+                card = drawRandomCard({ rng: random });
+            }
+            seen.add(card.id);
+        }
+        result.push(card);
+    }
+    return result;
+}
+
+// デッキ生成＆シャッフル
+export function buildDeck({ size = 40, rng } = {}) {
+    const random = rng || Math.random;
+    const deck = [];
+    for (let i = 0; i < size; i++) deck.push(drawRandomCard({ rng: random }));
+    return shuffle(deck, random);
+}
+
+export function shuffle(arr, rng = Math.random) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }

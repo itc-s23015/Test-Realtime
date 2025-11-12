@@ -7,7 +7,7 @@ import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
 import TradingPanel from "./TradingPanel";
-import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
+import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect, drawRandomCard, drawCards, createSeededRng } from "./cardDefinitions";
 import Hand from "./Hand";
 import SideBar from "./SideBar";
 import Log from "./Log";
@@ -16,6 +16,8 @@ import RightUserList from "./RightUserList";
 import styles from "../styles/game.module.css";
 import  ResultModal  from "../game/ResultModal";
 import StartCountdown from "./StartCountdown";
+import useATB from "./atb/useATB";
+import ATBBar from "./ATBBar";
 
 
 // ====== 定数 ======
@@ -23,15 +25,8 @@ const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 2000;     // 価格自動配信間隔（2秒）
 const GAME_DURATION = 300;             // ゲーム時間（秒）
-
-// 初期手札
-function getInitialHand() {
-  return [
-    { id: CARD_TYPES.REDUCE_HOLDINGS_SMALL },
-    { id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM },
-    { id: CARD_TYPES.REDUCE_HOLDINGS_LARGE },
-  ];
-}
+const MAX_HAND_SIZE = 8;              // 最大手札枚数
+const CARD_DRAW_INTERVAL = 10000;    // 手札補充間隔（10秒）
 
 // ダミー株価データ生成
 function generateStockData(seed = Date.now()) {
@@ -59,6 +54,15 @@ function generateStockData(seed = Date.now()) {
   return data;
 }
 
+function strToSeed(str) {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + ( hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash) >>> 0;
+}
+
 // ====== メインコンポーネント ======
 export default function Game() {
   const router = useRouter();
@@ -72,9 +76,10 @@ export default function Game() {
   const [allPlayers, setAllPlayers] = useState({});
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [status, setStatus] = useState("connecting");
-  const [hand, setHand] = useState(getInitialHand());
+  const [hand, setHand] = useState([]);
   const [logs, setLogs] = useState([]);
-    // ゲーム終了 & 結果
+
+  // ゲーム終了 & 結果
   const [isGameOver, setIsGameOver] = useState(false);
   const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
   const resultsMapRef = useRef(new Map());    // 重複上書き用
@@ -82,7 +87,7 @@ export default function Game() {
    //カウントダウン
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
-
+  
   // サイドバー開閉状態
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
@@ -95,6 +100,10 @@ export default function Game() {
   const initializedRef = useRef(false);
   const holdingRef = useRef(holding);
   const moneyRef = useRef(money);
+  const handRef = useRef(hand);
+  const rngRef = useRef(null); // 乱数生成
+  const drawTimerRef = useRef(null); // ドロータイマー
+  const isGameOverRef = useRef(false);
 
   // Refの同期
   useEffect(() => {
@@ -104,6 +113,29 @@ export default function Game() {
   useEffect(() => {
     moneyRef.current = money;
   }, [money]);
+
+  useEffect(() => {
+    handRef.current = hand;
+  }, [hand]);
+
+  useEffect(() => {
+    isGameOverRef.current = isGameOver;
+  }, [isGameOver]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      // 株価更新タイマーを停止
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+
+      if (drawTimerRef.current) {
+        clearInterval(drawTimerRef.current);
+        drawTimerRef.current = null;
+      }
+    }  
+  }, [isGameOver]);
 
   // クライアントID生成
   const clientId = useMemo(() => {
@@ -130,13 +162,14 @@ export default function Game() {
 
   // Presence更新関数
   const updatePresence = useCallback(
-    async (newMoney, newHolding) => {
+    async (newMoney, newHolding, newAtb) => {
       if (!chRef.current) return;
       try {
         await chRef.current.presence.update({
           name: clientId,
           money: newMoney,
           holding: newHolding,
+          atb: typeof newAtb === "number" ? newAtb : undefined,
         });
       } catch (e) {
         console.error("❌ Presence更新失敗:", e);
@@ -144,6 +177,19 @@ export default function Game() {
     },
     [clientId]
   );
+  //ATBゲージ
+  // ← updatePresence を定義した「後」で OK
+const syncATBToPresence = useCallback(
+  (v) => updatePresence(moneyRef.current, holdingRef.current, v),
+  [updatePresence]
+);
+const { atb, spend, setRate, setMax, reset } = useATB({
+  initial: 0,
+  max: 100,
+  ratePerSec: 30,
+  syncPresence: syncATBToPresence,
+  syncIntervalMs: 500,
+});
 
   // 取引機能
   const handleTrade = useCallback(async (type, amount) => {
@@ -214,6 +260,17 @@ export default function Game() {
     startAutoUpdate(chRef.current, initialData);
   }, [clientId]);
 
+  // 初期手札取得(3枚)
+  useEffect(() => {
+    if (!clientId || !roomU) return;
+    if (!rngRef.current) {
+      rngRef.current = createSeededRng(strToSeed(`${clientId} : ${roomU}`));
+      const init = drawCards(3, { rng: rngRef.current }).map((c) => ({ id: c.id }));
+      setHand(init);
+      addLog("🃏 初期手札を取得しました");
+    }
+  }, [clientId, roomU]);  
+
   // Ably接続とイベント処理
   useEffect(() => {
     if (!roomU || !clientId || initializedRef.current) return;
@@ -247,6 +304,8 @@ export default function Game() {
         name: clientId,
         money: INITIAL_MONEY,
         holding: INITIAL_HOLDING,
+        //ATBゲージの属性追加
+        atb: 0,
       });
 
       addLog("🎮 対戦が開始されました！");
@@ -281,8 +340,19 @@ export default function Game() {
           by: clientId,
         });
         startAutoUpdate(ch, initialData);
+
+        if (!drawTimerRef.current) {
+          drawTimerRef.current = setInterval(async () => {
+            try {
+              await ch.publish("card-draw-tick", { at: Date.now() });
+              console.log("🃏 カードドロー通知を送信しました");
+            } catch (e) {
+              console.error("❌ カードドロー通知送信失敗:", e);
+            }
+          }, CARD_DRAW_INTERVAL);
+        }
       }
-      
+
       // 株価初期化イベント
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
@@ -299,6 +369,17 @@ export default function Game() {
         );
       });
 
+      // 10秒ごとのカードドロー（上限8枚）
+      ch.subscribe("card-draw-tick", (msg) => {
+        if (handRef.current.length >= MAX_HAND_SIZE) return;
+        const rng = rngRef.current || Math.random;
+        const card = drawRandomCard({ rng });
+        setHand((prev) =>
+          prev.length < MAX_HAND_SIZE ? [...prev, { id: card.id }] : prev
+        );
+        addLog("🃏 1枚ドローしました");
+      });
+
       // カード使用イベント
       ch.subscribe("card-used", (msg) => {
         const { cardId, playerId, targetId } = msg.data || {};
@@ -313,6 +394,7 @@ export default function Game() {
                 name: clientId,
                 money: moneyRef.current,
                 holding: holdingRef.current,
+                guards: 0
               }),
             },
           };
@@ -328,6 +410,18 @@ export default function Game() {
             const newHolding =
               result.gameState.players[clientId].holding ?? holdingRef.current;
             setHolding(newHolding);
+            //ATBゲージ
+            const meAfter = result.gameState?.players?.[clientId];
+          if (meAfter && typeof meAfter.guards === "number") {
+              setAllPlayers((prev) => ({
+              ...prev,
+              [clientId]: {
+                ...(prev[clientId] ?? {}),
+                guards: meAfter.guards,
+                holding: newHolding,
+                },
+              }));
+            }
             setTimeout(() => updatePresence(moneyRef.current, newHolding), 50);
             setError(
               `⚔️ ${CARD_DEFINITIONS[cardId]?.name || "カード"} を受けました！`
@@ -352,6 +446,8 @@ export default function Game() {
             name: m.data?.name || m.clientId,
             money: m.data?.money ?? INITIAL_MONEY,
             holding: m.data?.holding ?? INITIAL_HOLDING,
+            //ATBゲージの属性追加
+            atb:   m.data?.atb ?? 0,
           };
         });
         setAllPlayers(players);
@@ -363,6 +459,7 @@ export default function Game() {
         resultsMapRef.current.set(r.playerId, r);
         setResults(Array.from(resultsMapRef.current.values()));
         setIsGameOver(true); // 誰かの結果が来たらモーダルを開く
+
       });
     });
 
@@ -371,6 +468,11 @@ export default function Game() {
       if (autoTimerRef.current) {
         clearInterval(autoTimerRef.current);
         autoTimerRef.current = null;
+      }
+
+      if (drawTimerRef.current) {
+        clearInterval(drawTimerRef.current);
+        drawTimerRef.current = null;
       }
       
       const cleanup = async () => {
@@ -487,6 +589,13 @@ const onTimeUp = async () => {
     
     const card = hand[cardIndex];
     const cardDef = CARD_DEFINITIONS[card.id];
+//ATBゲージが足らなかった時
+  const cost = cardDef?.atbCost ?? 0;
+  if (cost > 0 && !spend(cost)) {
+     setError("❌ ATBが足りません");
+     setTimeout(() => setError(""), 2000);
+     return;
+  }
 
     const others = Object.keys(allPlayers).filter((id) => id !== clientId);
     
@@ -498,6 +607,49 @@ const onTimeUp = async () => {
     }
 
     const targetId = selectedTarget || others[0] || null;
+    //カードとATBゲージの判定の部分だはず
+       // まずローカルで前提チェック＆自己効果（ドロー/ガードなど）を適用
+    try {
+      const snapshot = {
+        players: {
+          ...allPlayers,
+          [clientId]: {
+            ...(allPlayers[clientId] ?? { name: clientId, money: moneyRef.current, holding: holdingRef.current, guards: 0 }),
+          },
+          ...(targetId ? {
+            [targetId]: {
+              ...(allPlayers[targetId] ?? { name: targetId, money: 0, holding: 0, guards: 0 }),
+            }
+          } : {})
+        }
+      };
+      const sim = executeCardEffect(card.id, snapshot, clientId, targetId);
+      if (!sim.success) {
+        setError("❌ カードを使えませんでした");
+        setTimeout(() => setError(""), 2500);
+        return;
+      }
+      // 自己効果（ドローなど）は即時反映
+      if (sim.drawCount && sim.drawCount > 0) {
+        const adds = Array.from({ length: sim.drawCount }, () => drawRandomCard());
+        setHand((prev) => prev.filter((_, i) => i !== cardIndex).concat(adds));
+      } else {
+        // 手札から使用カードだけを除去
+        setHand((prev) => prev.filter((_, i) => i !== cardIndex));
+      }
+      if (sim.gameState?.players?.[clientId]?.guards !== undefined) {
+        // ガード付与などを allPlayers に反映（軽く）
+        setAllPlayers((prev) => ({
+          ...prev,
+          [clientId]: {
+            ...(prev[clientId] ?? { name: clientId, money: moneyRef.current, holding: holdingRef.current }),
+            guards: sim.gameState.players[clientId].guards,
+          }
+        }));
+      }
+    } catch (e) {
+      console.error("❌ ローカル適用失敗: ", e);
+    }
 
     try {
       await chRef.current.publish("card-used", {
@@ -506,9 +658,6 @@ const onTimeUp = async () => {
         targetId,
         timestamp: Date.now(),
       });
-      
-      // 手札から削除
-      setHand((prev) => prev.filter((_, i) => i !== cardIndex));
       
       setError(`✅ ${cardDef?.name || "カード"} を使用しました！`);
       setTimeout(() => setError(""), 3000);
@@ -609,6 +758,8 @@ const onTimeUp = async () => {
             onTrade={handleTrade}
           />
         )}
+        {/* ATBゲージ */}
+        <ATBBar value={atb} max={100} label="ATB" />
 
         {/* 手札表示 */}
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
