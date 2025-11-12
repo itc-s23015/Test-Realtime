@@ -7,7 +7,7 @@ import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
 import TradingPanel from "./TradingPanel";
-import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect } from "./cardDefinitions";
+import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect, drawRandomCard, drawCards, createSeededRng } from "./cardDefinitions";
 import Hand from "./Hand";
 import SideBar from "./SideBar";
 import Log from "./Log";
@@ -18,20 +18,14 @@ import  ResultModal  from "../game/ResultModal";
 import useATB from "./atb/useATB";
 import ATBBar from "./ATBBar";
 
+
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 2000;     // 価格自動配信間隔（2秒）
 const GAME_DURATION = 300;             // ゲーム時間（秒）
-
-// 初期手札
-function getInitialHand() {
-  return [
-    { id: CARD_TYPES.REDUCE_HOLDINGS_SMALL },
-    { id: CARD_TYPES.REDUCE_HOLDINGS_MEDIUM },
-    { id: CARD_TYPES.REDUCE_HOLDINGS_LARGE },
-  ];
-}
+const MAX_HAND_SIZE = 8;              // 最大手札枚数
+const CARD_DRAW_INTERVAL = 10000;    // 手札補充間隔（10秒）
 
 // ダミー株価データ生成
 function generateStockData(seed = Date.now()) {
@@ -59,6 +53,15 @@ function generateStockData(seed = Date.now()) {
   return data;
 }
 
+function strToSeed(str) {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash += (hash << 1) + ( hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return Math.abs(hash) >>> 0;
+}
+
 // ====== メインコンポーネント ======
 export default function Game() {
   const router = useRouter();
@@ -72,13 +75,13 @@ export default function Game() {
   const [allPlayers, setAllPlayers] = useState({});
   const [selectedTarget, setSelectedTarget] = useState(null);
   const [status, setStatus] = useState("connecting");
-  const [hand, setHand] = useState(getInitialHand());
+  const [hand, setHand] = useState([]);
   const [logs, setLogs] = useState([]);
-    // ゲーム終了 & 結果
+
+  // ゲーム終了 & 結果
   const [isGameOver, setIsGameOver] = useState(false);
   const [results, setResults] = useState([]); // {id,name,money,holding,price,score}[]
   const resultsMapRef = useRef(new Map());    // 重複上書き用
-
 
   // サイドバー開閉状態
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
@@ -92,6 +95,10 @@ export default function Game() {
   const initializedRef = useRef(false);
   const holdingRef = useRef(holding);
   const moneyRef = useRef(money);
+  const handRef = useRef(hand);
+  const rngRef = useRef(null); // 乱数生成
+  const drawTimerRef = useRef(null); // ドロータイマー
+  const isGameOverRef = useRef(false);
 
   // Refの同期
   useEffect(() => {
@@ -101,6 +108,29 @@ export default function Game() {
   useEffect(() => {
     moneyRef.current = money;
   }, [money]);
+
+  useEffect(() => {
+    handRef.current = hand;
+  }, [hand]);
+
+  useEffect(() => {
+    isGameOverRef.current = isGameOver;
+  }, [isGameOver]);
+
+  useEffect(() => {
+    if (isGameOver) {
+      // 株価更新タイマーを停止
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+
+      if (drawTimerRef.current) {
+        clearInterval(drawTimerRef.current);
+        drawTimerRef.current = null;
+      }
+    }  
+  }, [isGameOver]);
 
   // クライアントID生成
   const clientId = useMemo(() => {
@@ -213,6 +243,17 @@ const { atb, spend, setRate, setMax, reset } = useATB({
     setRoomNumber(r.toUpperCase());
   }, [router]);
 
+  // 初期手札取得(3枚)
+  useEffect(() => {
+    if (!clientId || !roomU) return;
+    if (!rngRef.current) {
+      rngRef.current = createSeededRng(strToSeed(`${clientId} : ${roomU}`));
+      const init = drawCards(3, { rng: rngRef.current }).map((c) => ({ id: c.id }));
+      setHand(init);
+      addLog("🃏 初期手札を取得しました");
+    }
+  }, [clientId, roomU]);  
+
   // Ably接続とイベント処理
   useEffect(() => {
     if (!roomU || !clientId || initializedRef.current) return;
@@ -271,8 +312,19 @@ const { atb, spend, setRate, setMax, reset } = useATB({
           by: clientId,
         });
         startAutoUpdate(ch, initialData);
+
+        if (!drawTimerRef.current) {
+          drawTimerRef.current = setInterval(async () => {
+            try {
+              await ch.publish("card-draw-tick", { at: Date.now() });
+              console.log("🃏 カードドロー通知を送信しました");
+            } catch (e) {
+              console.error("❌ カードドロー通知送信失敗:", e);
+            }
+          }, CARD_DRAW_INTERVAL);
+        }
       }
-      
+
       // 株価初期化イベント
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
@@ -287,6 +339,17 @@ const { atb, spend, setRate, setMax, reset } = useATB({
             ? `📈 株価が ${Math.abs(change)} 円上昇`
             : `📉 株価が ${Math.abs(change)} 円下降`
         );
+      });
+
+      // 10秒ごとのカードドロー（上限8枚）
+      ch.subscribe("card-draw-tick", (msg) => {
+        if (handRef.current.length >= MAX_HAND_SIZE) return;
+        const rng = rngRef.current || Math.random;
+        const card = drawRandomCard({ rng });
+        setHand((prev) =>
+          prev.length < MAX_HAND_SIZE ? [...prev, { id: card.id }] : prev
+        );
+        addLog("🃏 1枚ドローしました");
       });
 
       // カード使用イベント
@@ -368,6 +431,7 @@ const { atb, spend, setRate, setMax, reset } = useATB({
         resultsMapRef.current.set(r.playerId, r);
         setResults(Array.from(resultsMapRef.current.values()));
         setIsGameOver(true); // 誰かの結果が来たらモーダルを開く
+
       });
     });
 
@@ -376,6 +440,11 @@ const { atb, spend, setRate, setMax, reset } = useATB({
       if (autoTimerRef.current) {
         clearInterval(autoTimerRef.current);
         autoTimerRef.current = null;
+      }
+
+      if (drawTimerRef.current) {
+        clearInterval(drawTimerRef.current);
+        drawTimerRef.current = null;
       }
       
       const cleanup = async () => {
