@@ -7,11 +7,22 @@ export const CARD_TYPES = {
   REDUCE_HOLDINGS_SMALL: 'REDUCE_HOLDINGS_SMALL',
   REDUCE_HOLDINGS_MEDIUM: 'REDUCE_HOLDINGS_MEDIUM',
   REDUCE_HOLDINGS_LARGE: 'REDUCE_HOLDINGS_LARGE',
+
   DRAW_TWO: 'DRAW_TWO',
+
   GUARD_SHIELD: 'GUARD_SHIELD',
+
   INCREASE_HOLDINGS_SMALL: 'INCREASE_HOLDINGS_SMALL',
   INCREASE_HOLDINGS_MEDIUM: 'INCREASE_HOLDINGS_MEDIUM',
   INCREASE_HOLDINGS_LARGE: 'INCREASE_HOLDINGS_LARGE',
+
+  INCREASE_MONEY_SMALL: 'INCREASE_MONEY_SMALL',
+  INCREASE_MONEY_MEDIUM: 'INCREASE_MONEY_MEDIUM',
+  INCREASE_MONEY_LARGE: 'INCREASE_MONEY_LARGE',
+
+  REDUCE_MONEY_SMALL: 'REDUCE_MONEY_SMALL',
+  REDUCE_MONEY_MEDIUM: 'REDUCE_MONEY_MEDIUM',
+  REDUCE_MONEY_LARGE: 'REDUCE_MONEY_LARGE',
 };
 
 export const RARITY = {
@@ -136,6 +147,72 @@ export const CARD_DEFINITIONS = {
         atbCost: 70,
         cooldownMs: 3000,
     },
+     [CARD_TYPES.INCREASE_MONEY_SMALL]: {
+        id: CARD_TYPES.INCREASE_MONEY_SMALL,
+        name: '資金増加(小)',
+        description: '資金を100増やす',
+        emoji: '💰',
+        needsTarget: false,
+        effectAmount: 100,
+        rarity: RARITY.NORMAL,
+        atbCost: 25,
+        cooldownMs: 2000,
+    },
+    [CARD_TYPES.INCREASE_MONEY_MEDIUM]: {
+        id: CARD_TYPES.INCREASE_MONEY_MEDIUM,
+        name: '資金増加(中)',
+        description: '資金を300増やす',
+        emoji: '🤑',
+        needsTarget: false,
+        effectAmount: 300,
+        rarity: RARITY.RARE,
+        atbCost: 45,
+        cooldownMs: 4000,
+    },
+    [CARD_TYPES.INCREASE_MONEY_LARGE]: {
+        id: CARD_TYPES.INCREASE_MONEY_LARGE,
+        name: '資金増加(大)',
+        description: '資金を500増やす',
+        emoji: '💵',
+        needsTarget: false,
+        effectAmount: 500,
+        rarity: RARITY.SUPERRARE,
+        atbCost: 65,
+        cooldownMs: 6000,
+    },
+    [CARD_TYPES.REDUCE_MONEY_SMALL]: {
+        id: CARD_TYPES.REDUCE_MONEY_SMALL,
+        name: '資金減少(小)',
+        description: '相手の資金を100減らす',
+        emoji: '🪓',
+        needsTarget: true,
+        effectAmount: -100,
+        rarity: RARITY.NORMAL,
+        atbCost: 30,
+        cooldownMs: 3000,
+    },
+    [CARD_TYPES.REDUCE_MONEY_MEDIUM]: {
+        id: CARD_TYPES.REDUCE_MONEY_MEDIUM,
+        name: '資金減少(中)',
+        description: '相手の資金を300減らす',
+        emoji: '🔨',
+        needsTarget: true,
+        effectAmount: -300,
+        rarity: RARITY.RARE,
+        atbCost: 50,
+        cooldownMs: 5000,
+    },
+    [CARD_TYPES.REDUCE_MONEY_LARGE]: {
+        id: CARD_TYPES.REDUCE_MONEY_LARGE,
+        name: '資金減少(大)',
+        description: '相手の資金を500減らす',
+        emoji: '💣',
+        needsTarget: true,
+        effectAmount: -500,
+        rarity: RARITY.SUPERRARE,
+        atbCost: 70,
+        cooldownMs: 8000,
+    },
 };   
 
 // カード情報を配列へ
@@ -174,23 +251,29 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         };
     }
 
-    // 不変コピー
-    const newState = { players: {} };
-    Object.keys(gameState.players).forEach(id => {
-        newState.players[id] = ensurePlayerShape(gameState.players[id]);
-    });
+    // 🔥 修正: ディープコピーで不変性を保証
+    const newState = { 
+        players: Object.fromEntries(
+            Object.entries(gameState.players).map(([id, data]) => [
+                id,
+                { ...data }
+            ])
+        )
+    };
 
-    const self = newState.players[playerId];
-    if (!self) {
+    // 自分の情報を取得・初期化
+    if (!newState.players[playerId]) {
         newState.players[playerId] = ensurePlayerShape({});
     }
+    const self = newState.players[playerId];
 
     let log = '';
     let drawCount = 0;
 
-    // ターゲットの決定（自分専用カードは自分がターゲット）
+    // ターゲットの決定
     const victimId = card.needsTarget ? targetId : playerId;
     
+    // 🔥 修正: victimも必ず初期化
     if (!newState.players[victimId]) {
         newState.players[victimId] = ensurePlayerShape({});
     }
@@ -239,7 +322,7 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         case CARD_TYPES.INCREASE_HOLDINGS_SMALL:
         case CARD_TYPES.INCREASE_HOLDINGS_MEDIUM:
         case CARD_TYPES.INCREASE_HOLDINGS_LARGE:
-            // 保有株を増やす（自分専用）
+            // 🔥 修正: 自分の保有株を増やす
             const prevHolding = Number(self.holding ?? 0);
             const increaseAmount = Number(card.effectAmount ?? 0);
             self.holding = prevHolding + increaseAmount;
@@ -250,6 +333,55 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
             return {
                 success: true,
                 message: `${card.name} 成功！ 保有株が${increaseAmount}増加しました！`,
+                gameState: newState,
+                needsSync: true,
+                log,
+            };
+
+        case CARD_TYPES.INCREASE_MONEY_SMALL:
+        case CARD_TYPES.INCREASE_MONEY_MEDIUM:
+        case CARD_TYPES.INCREASE_MONEY_LARGE:
+            // 🔥 修正: 自分の資金を増やす
+            const prevMoney = Number(self.money ?? 0);
+            const moneyIncrease = Number(card.effectAmount ?? 0);
+            self.money = prevMoney + moneyIncrease;
+            
+            console.log(`💰 INCREASE_MONEY実行: ${prevMoney} + ${moneyIncrease} = ${self.money}`);
+            
+            log = `💰 ${self.name || playerId} の資金を ${moneyIncrease} 増加`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ 資金が${moneyIncrease}増加しました！`,
+                gameState: newState,
+                needsSync: true,
+                log,
+            };
+            
+        case CARD_TYPES.REDUCE_MONEY_SMALL:
+        case CARD_TYPES.REDUCE_MONEY_MEDIUM:
+        case CARD_TYPES.REDUCE_MONEY_LARGE:
+            // 攻撃系：ガード判定
+            if (consumeGuardIfAny()) {
+                log = `🛡️ ${victim.name || victimId} のガードが発動し、効果は無効化！`;
+                return { 
+                    success: true, 
+                    needsSync: true, 
+                    gameState: newState, 
+                    log,
+                    message: log,
+                };
+            }
+
+            // 資金を減らす
+            const prevVictimMoney = Number(victim.money ?? 0);
+            const moneyDecrease = Number(card.effectAmount ?? 0);
+            victim.money = Math.max(0, prevVictimMoney + moneyDecrease);
+            const actualMoneyDecrease = prevVictimMoney - victim.money;
+            
+            log = `🪓 ${self.name || playerId} → ${victim.name || victimId} の資金を ${actualMoneyDecrease} 減少`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ ${victim.name}の資金が${actualMoneyDecrease}減少しました！`,
                 gameState: newState,
                 needsSync: true,
                 log,
@@ -269,8 +401,8 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
             };
 
         case CARD_TYPES.GUARD_SHIELD:
-            // ガード付与（自分専用）
-            self.guards += card.effectAmount ?? 1;
+            // 🔥 修正: 自分にガード付与
+            self.guards = (self.guards || 0) + (card.effectAmount ?? 1);
             log = `🛡️ ${self.name || playerId} にガードを付与（残り${self.guards}）`;
             return {
                 success: true,

@@ -186,7 +186,7 @@ export default function Game() {
     [updatePresence]
   );
   
-  const { atb, spend, setRate, setMax, reset } = useATB({
+  const { atb, spend } = useATB({
     initial: 0,
     max: 100,
     ratePerSec: 10,
@@ -416,27 +416,34 @@ export default function Game() {
             );
             
             if (result?.success && result?.needsSync) {
-              const newHolding =
-                result.gameState.players[clientId].holding ?? holdingRef.current;
-              setHolding(newHolding);
-              
-              const meAfter = result.gameState?.players?.[clientId];
-              if (meAfter && typeof meAfter.guards === "number") {
-                setTimeout(() => updatePresence(moneyRef.current, newHolding), 50);
-                setError(
-                  `⚔️ ${CARD_DEFINITIONS[cardId]?.name || "カード"} を受けました！`
-                );
-                setTimeout(() => setError(""), 3000);
+              const updatedPlayer = result.gameState?.players?.[clientId];
+
+              const newHolding = updatedPlayer.holding ?? holdingRef.current;
+              if (newHolding !== holdingRef.current) {
+                console.log("🔄 持ち株更新 (カード効果):", holdingRef.current, "→", newHolding);
+                setHolding(newHolding);
+              }
+
+              const newMoney = updatedPlayer.money ?? moneyRef.current;
+              if (newMoney !== moneyRef.current) {
+                console.log("🔄 資金更新 (カード効果):", moneyRef.current, "→", newMoney);
+                setMoney(newMoney);
+              }
+
+              setTimeout(() => updatePresence(newMoney, newHolding), 50);
+
+              setError(`✅ ${CARD_DEFINITIONS[cardId]?.name || "カード"} の効果を受けました！`);
+              setTimeout(() => setError(""), 3000);
                 
                 return {
                   ...currentPlayers,
                   [clientId]: {
                     ...(currentPlayers[clientId] ?? {}),
-                    guards: meAfter.guards,
+                    guards: updatedPlayer.guards,
                     holding: newHolding,
+                    money: newMoney,
                   },
                 };
-              }
             }
             return currentPlayers;
           });
@@ -626,19 +633,32 @@ export default function Game() {
       }
 
       // 持ち株・ガードの更新
-      if (sim.needsSync && sim.gameState?.players?.[clientId]) {
-        const newHolding = sim.gameState.players[clientId].holding;
-        const newGuards = sim.gameState.players[clientId].guards;
+        if (sim.needsSync && sim.gameState?.players?.[clientId]) {
+        const playerData = sim.gameState.players[clientId];
+        const newHolding = playerData.holding;
+        const newGuards = playerData.guards;
+        const newMoney = playerData.money;
 
-        // 持ち株が変化していたら更新
         if (newHolding !== undefined && newHolding !== holdingRef.current) {
           console.log("🔄 持ち株更新:", holdingRef.current, "→", newHolding);
           setHolding(newHolding);
-          setTimeout(() => updatePresence(moneyRef.current, newHolding), 50);
         }
 
-        // allPlayers に反映
-        if (newGuards !== undefined || (newHolding !== undefined && newHolding !== holdingRef.current)) {
+        if (newMoney !== undefined && newMoney !== moneyRef.current) {
+          console.log("🔄 資金更新:", moneyRef.current, "→", newMoney);
+          setMoney(newMoney);
+        }
+
+        const moneyChanged = newMoney !== undefined && newMoney !== moneyRef.current;
+        const holdingChanged = newHolding !== undefined && newHolding !== holdingRef.current;
+      
+        if (moneyChanged || holdingChanged) {
+          const finalMoney = newMoney !== undefined ? newMoney : moneyRef.current;
+          const finalHolding = newHolding !== undefined ? newHolding : holdingRef.current;
+          setTimeout(() => updatePresence(finalMoney, finalHolding), 50);
+        }
+
+        if (newGuards !== undefined || holdingChanged || moneyChanged) {
           setAllPlayers((prev) => ({
             ...prev,
             [clientId]: {
@@ -647,8 +667,9 @@ export default function Game() {
                 money: moneyRef.current,
                 holding: holdingRef.current,
               }),
-              holding: newHolding ?? holdingRef.current,
-              guards: newGuards ?? (prev[clientId]?.guards || 0),
+              money: newMoney !== undefined ? newMoney : moneyRef.current,
+              holding: newHolding !== undefined ? newHolding : holdingRef.current,
+              guards: newGuards !== undefined ? newGuards : (prev[clientId]?.guards || 0),
             }
           }));
         }
