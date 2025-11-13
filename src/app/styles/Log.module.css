@@ -1,101 +1,88 @@
-/* ====== ログ ====== */
+/* ===== Log.module.css ===== */
+
+/* コンテナ */
 .log {
+  /* 必要に応じて高さを上書きできます: style={{ "--log-height":"420px" }} */
+  --log-height: 500px;
+
   background: #ffffff;
   border: 1px solid #2a2a2a;
   border-radius: 12px;
-  padding: 10px;
-  height: 500px;
+  padding: 8px;
+  height: var(--log-height);
+  overflow: auto;
+
   color: #000000;
-  overflow: auto;
-}
-
-
-
-/* コンテナ */
-.wrap {
-  background: #fefeff;
-  border: 1px solid #1f2937;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-/* ヘッダー */
-.header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-bottom: 1px solid #ffffff;
-  background: #ffffff;
-}
-.title { font-weight: 700; }
-.tools { margin-left: auto; display: flex; gap: 6px; }
-.toolBtn {
-  background: #111;
-  border: 1px solid #222;
-  border-radius: 8px;
-  padding: 4px 8px;
-  color: #ddd;
-  cursor: pointer;
-}
-.toolBtn:hover { background: #181818; }
-
-/* リスト */
-.list {
-  max-height: 280px;              /* 必要に応じて高さ調整 */
-  overflow: auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
   line-height: 1.35;
 }
 
-.empty {
-  opacity: 0.6;
-  font-size: 12px;
+/* 空表示 */
+.logEmpty {
+  background: #ffffff;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
   padding: 12px;
+  color: #333;
+  text-align: center;
 }
 
-/* 行 */
+/* 行（左ドット + メッセージ） */
 .row {
   display: grid;
-  grid-template-columns: 80px 64px 1fr;
-  gap: 8px;
-  padding: 8px 10px;
-  border-top: 1px solid #101418;
-  align-items: center;
+  grid-template-columns: 12px 1fr; /* 左=ドット / 右=MSGを広く */
+  gap: 10px;
+  padding: 8px 6px;
+  border-top: 1px solid #eeeeee;
+  align-items: flex-start;
   word-break: break-word;
 }
-.zebra { background: rgba(255,255,255,0.02); }
-
-.time {
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
+.row:first-child {
+  border-top: none;
+}
+.row:nth-child(even) {
+  background: #fafafa;           /* ゼブラ */
+}
+.row:hover {
+  background: #f3f4f6;           /* ホバー強調 */
 }
 
-/* バッジ */
-.badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
+/* 左の小ドット（任意） */
+.dot {
   display: inline-block;
-  text-align: center;
-  border: 1px solid transparent;
+  width: 8px;
+  height: 8px;
+  margin-top: 7px;               /* テキストのベースラインに寄せる */
+  border-radius: 9999px;
+  background: #9ca3af;           /* グレー。必要ならJS側で色切替も可 */
 }
 
-/* レベル別カラー */
-.badge_info  { background:#0b1220; color:#c7d2fe; border-color:#1e293b; }
-.badge_ok    { background:#052114; color:#86efac; border-color:#064e3b; }
-.badge_warn  { background:#221a00; color:#fde68a; border-color:#92400e; }
-.badge_error { background:#250e0e; color:#fecaca; border-color:#7f1d1d; }
-.badge_action{ background:#0b1022; color:#93c5fd; border-color:#1d4ed8; }
+/* メッセージ本体（左側を削って右側を最大化） */
+.msg {
+  color: #111111;
+  font-size: 15px;               /* 視認性UP */
+  white-space: pre-wrap;         /* 改行保持 */
+  word-wrap: break-word;
+}
 
-/* メッセージ */
-.msg { color:#000000; font-size: 13px; }
-
-/* 行全体のレベル（必要なら背景のわずかな色味） */
-.info  {}
-.ok    {}
-.warn  {}
-.error {}
-.action{}
+/* スクロールバー（対応ブラウザのみ） */
+.log::-webkit-scrollbar {
+  width: 10px;
+}
+.log::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+.log::-webkit-scrollbar-thumb {
+  background: #c7c7c7;
+  border-radius: 8px;
+  border: 2px solid #f5f5f5;
+}
+.log::-webkit-scrollbar-thumb:hover {
+  background: #a9a9a9;
+}
+/* Firefox用の色指定 */
+.log {
+  scrollbar-color: #c7c7c7 #f5f5f5;
+  scrollbar-width: thin;
+}

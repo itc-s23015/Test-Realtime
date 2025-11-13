@@ -15,14 +15,14 @@ export function applyEventForSelf(evt, ctx) {
   switch (id) {
     case EVENT_IDS.CLEAR_HAND: {
       setHand([]);
-      addLog("🧹 イベント: 手札が全て消去されました");
+      addLog("🧹 イベント: \n手札が全て消去されました");
       break;
     }
     case EVENT_IDS.SET_MONEY: {
       const amount = Number(evt?.amount ?? EVENT_DEFS[EVENT_IDS.SET_MONEY].amount);
       setMoney(amount);
       updatePresence(amount, holdingRef.current);
-      addLog(`💴 イベント: 所持金が ¥${amount.toLocaleString()} に設定されました`);
+      addLog(`💴 イベント:所持金が ¥${amount.toLocaleString()} に設定されました`);
       break;
     }
     case EVENT_IDS.FORCE_SELL: {

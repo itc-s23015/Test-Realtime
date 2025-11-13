@@ -65,7 +65,9 @@ export default function useRandomEvents(params) {
     const start = () => {
       if (!enabled || !isHostRef.current || !chRef.current || timerRef.current) return;
       timerRef.current = setInterval(async () => {
-        try {
+      try {
+        // ★ 既定: 1/75 の確率でこの tick を「発火」させる
+        if (Math.random() >= occurrenceProb) return;
           const id = pickWeightedId();
           const now = Date.now();
           const payload = { id, uid: `${id}:${now}`, ts: now };
