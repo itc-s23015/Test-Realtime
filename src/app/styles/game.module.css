@@ -170,7 +170,7 @@
 .rightCol {
   position: sticky;           /* スクロールしても右は見える */
   top: 96px;                  /* ヘッダー+タイマーの高さに合わせて調整 */
-  height: calc(100vh - 96px - 16px); /* 画面高 - 上の余白 - 下の余白 */
+  height: calc(95vh - 96px - 16px); /* 画面高 - 上の余白 - 下の余白 */
   display: flex;
   flex-direction: column;
   gap: 12px;

@@ -23,7 +23,7 @@ import ATBBar from "./ATBBar";
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
-const AUTO_UPDATE_INTERVAL = 2000;     // 価格自動配信間隔（2秒）
+const AUTO_UPDATE_INTERVAL = 4000;     // 価格自動配信間隔（2秒）
 const GAME_DURATION = 300;             // ゲーム時間（秒）
 const MAX_HAND_SIZE = 8;              // 最大手札枚数
 const CARD_DRAW_INTERVAL = 10000;    // 手札補充間隔（10秒）
@@ -189,7 +189,7 @@ export default function Game() {
   const { atb, spend, setRate, setMax, reset } = useATB({
     initial: 0,
     max: 100,
-    ratePerSec: 30,
+    ratePerSec: 10,
     syncPresence: syncATBToPresence,
     syncIntervalMs: 500,
   });
@@ -776,10 +776,6 @@ export default function Game() {
       </div>
   </div>
 </div>
-   
-        <ATBBar value={atb} max={100} label="ATB" />
-        <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
-
       </div>
 
       <SideBar
