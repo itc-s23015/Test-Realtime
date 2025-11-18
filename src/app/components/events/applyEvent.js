@@ -36,7 +36,7 @@ export function applyEventForSelf(evt, ctx) {
         updatePresence(newMoney, 0);
         addLog(`📤 イベント: 全株を強制売却（${holding}株 x ¥${price.toLocaleString()}）`);
       } else {
-        addLog("📤 イベント: 強制売却（売る株なし）");
+        addLog("📤 イベント: 強制売却（保有株なし）");
       }
       break;
     }

@@ -596,13 +596,20 @@ export default function Game() {
       return;
     }
 
-    const others = Object.keys(allPlayers).filter((id) => id !== clientId);
+    // const others = Object.keys(allPlayers).filter((id) => id !== clientId);
     
-    if (cardDef?.needsTarget && others.length >= 1 && !selectedTarget) {
-      setError("❌ ターゲットを選択してください");
-      setTimeout(() => setError(""), 3000);
-      return;
-    }
+    // if (cardDef?.needsTarget && others.length >= 1 && !selectedTarget) {
+    //   setError("❌ ターゲットを選択してください");
+    //   setTimeout(() => setError(""), 3000);
+    //   return;
+    // }
+
+    if (cardDef?.needsTarget && !selectedTarget) {
+  setError("❌ ターゲットを選択してください（自分も選択可）");
+  setTimeout(() => setError(""), 3000);
+  return;
+}
+
 
     const targetId = selectedTarget || others[0] || null;
 

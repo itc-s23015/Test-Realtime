@@ -67,7 +67,7 @@
 
 /* スクロールバー（対応ブラウザのみ） */
 .log::-webkit-scrollbar {
-  width: 10px;
+  width: 20px;
 }
 .log::-webkit-scrollbar-track {
   background: #f5f5f5;
