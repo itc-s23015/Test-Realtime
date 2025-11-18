@@ -18,6 +18,7 @@ import StartCountdown from "./StartCountdown";
 import useATB from "./atb/useATB";
 import ATBBar from "./ATBBar"; 
 import useRandomEvents from "./events/useRandomEvents";
+import LeftHelpPanel from "./LeftHelpPanel";
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -802,22 +803,16 @@ export default function Game() {
             </div>
           </div>
         </div>
-
-        <ATBBar value={atb} max={100} label="ATB" />
-        <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
       </div>
 
       <SideBar
         side="left"
         open={isLeftSidebarOpen}
         onToggle={() => setIsLeftSidebarOpen((v) => !v)}
-        title="メモ / ヘルプ"
+        title="ヘルプ"
       >
-        <div className={styles.memoContent}>
-          ・ゲームのヒント/ルールを書けます。
-          <br />
-          ・必要に応じて好きな内容に差し替えてください。
-        </div>
+      <LeftHelpPanel roomId={roomU} />
+
       </SideBar>
 
       <SideBar

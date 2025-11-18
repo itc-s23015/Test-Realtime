@@ -1,0 +1,143 @@
+.wrap {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  overflow: hidden;
+  color: #111827;
+}
+
+/* タブ */
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+.tab {
+  padding: 10px 8px;
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.tab:hover { background: #e5e7eb; }
+.active { background: #ffffff; }
+
+/* セクション */
+.section {
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+.block { display: grid; gap: 8px; }
+.heading {
+  font-weight: 800;
+  font-size: 14px;
+}
+.list {
+  padding-left: 18px;
+  margin: 0;
+}
+.note {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* ルーム行 */
+.roomRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.roomId { font-size: 14px; }
+
+/* 入力 */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+}
+
+/* 図鑑 */
+.cardList { display: grid; gap: 10px; }
+.cardItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+}
+.cardName { font-size: 14px; }
+.cardDesc { margin-top: 4px; font-size: 13px; color: #111827; }
+.meta { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+}
+
+/* レアリティバッジ（関数風クラス：JS側で付与） */
+.badgeRarityN,
+.badgeRarityR,
+.badgeRaritySR {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.badgeRarityN { color: #111827; background: #f3f4f6; border-color: #e5e7eb; }
+.badgeRarityR { color: #1f2937; background: #d1fae5; border-color: #a7f3d0; }
+.badgeRaritySR { color: #3b0764; background: #ede9fe; border-color: #ddd6fe; }
+
+/* メモ */
+.textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 180px;
+  resize: vertical;
+  background: #fff;
+  color: #111827;
+}
+.memoTools { display: flex; gap: 8px; }
+
+/* ボタン */
+.btn,
+.btnGhost,
+.btnDanger {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: #111827;
+  color: #fff;
+}
+.btn:hover { filter: brightness(1.05); }
+.btnGhost {
+  background: #fff;
+  color: #111827;
+  border-color: #d1d5db;
+}
+.btnDanger {
+  background: #991b1b;
+  border-color: #7f1d1d;
+  color: #fff;
+}
+
+.empty {
+  opacity: 0.6;
+  font-size: 12px;
+  padding: 8px;
+}
