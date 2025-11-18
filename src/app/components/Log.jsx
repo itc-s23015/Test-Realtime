@@ -1,20 +1,19 @@
 import React from "react";
 import styles from "../styles/Log.module.css";
 
-const Log = ({ log = [] }) => {
+export default function Log({ log = [] }) {
+  if (!log || log.length === 0) {
+    return <div className={styles.logEmpty}>ログはまだありません</div>;
+  }
+
   return (
     <div className={styles.log}>
-      {log.length === 0 ? (
-        <div className={styles.logEmpty}>ログはまだありません</div>
-      ) : (
-        log.map((l, i) => (
-          <div key={i} className={styles.logItem}>
-            {l}
-          </div>
-        ))
-      )}
+      {log.map((msg, i) => (
+        <div key={i} className={styles.row}>
+          <span className={styles.dot} aria-hidden />
+          <div className={styles.msg}>{msg}</div>
+        </div>
+      ))}
     </div>
   );
 }
-
-export default Log;

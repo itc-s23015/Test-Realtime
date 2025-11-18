@@ -16,7 +16,8 @@ import styles from "../styles/game.module.css";
 import ResultModal from "../game/ResultModal";
 import StartCountdown from "./StartCountdown";
 import useATB from "./atb/useATB";
-import ATBBar from "./ATBBar";
+import ATBBar from "./ATBBar"; 
+import useRandomEvents from "./events/useRandomEvents";
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -97,8 +98,11 @@ export default function Game() {
   const rngRef = useRef(null);
   const drawTimerRef = useRef(null);
   const isGameOverRef = useRef(false);
-  const resultsMapRef = useRef(new Map());
-  const stockDataRef = useRef(stockData); // 最新のstockDataを保持
+  const isHostRef = useRef(false);
+  const stockDataRef = useRef(stockData);
+  
+  useEffect(() => { stockDataRef.current = stockData; }, [stockData]);
+
 
   // Refの同期
   useEffect(() => { holdingRef.current = holding; }, [holding]);
@@ -344,6 +348,8 @@ export default function Game() {
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
+      //新規追加
+      isHostRef.current = isHost;
 
       if (isHost) {
         const seconds = 3;
@@ -729,6 +735,24 @@ export default function Game() {
       ? { text: "接続中...", color: "#f59e0b" }
       : { text: "切断", color: "#ef4444" };
 
+  //新規追加　イベント関連
+  useRandomEvents({
+    enabled: !isGameOver && Boolean(chRef.current) && Boolean(gameStartAt),
+    chRef,
+    isHostRef,
+    setHand, setMoney, setHolding,
+    moneyRef, holdingRef, handRef,
+    updatePresence,
+    addLog,
+    getCurrentPrice: () =>
+      stockDataRef.current.length
+        ? stockDataRef.current[stockDataRef.current.length - 1].price
+        : 0,
+    getStockData: () => stockDataRef.current,
+    setStockData,
+    intervalMs: 1000,
+  });
+  
   return (
     <div className={styles.container}>
       <div className={styles.innerContainer}>
