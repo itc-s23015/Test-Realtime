@@ -24,7 +24,7 @@ import LeftHelpPanel from "./LeftHelpPanel";
 const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000; // 10秒ごとの自動更新
-const GAME_DURATION = 300;
+const GAME_DURATION = 180;
 const MAX_HAND_SIZE = 8;
 const CARD_DRAW_INTERVAL = 10000;
 

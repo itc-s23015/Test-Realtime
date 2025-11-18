@@ -11,7 +11,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export default function useATB({
   initial = 0,
   max = 100,
-  ratePerSec = 16,        // 1秒あたりの増加量
+  ratePerSec = 17,        // 1秒あたりの増加量
   paused = false,
   syncPresence,           // (value:number) => void|Promise<void>
   syncIntervalMs = 500,
