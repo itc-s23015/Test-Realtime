@@ -17,6 +17,9 @@ export default function RightUserList({
   }
 
   const handleClick = (id) => {
+    // 自分は選択できないようにする
+    if (id === meId) return;
+
     // もう一度クリックで解除（任意）
     onSelect(id === selectedTarget ? null : id);
   };
@@ -35,7 +38,7 @@ export default function RightUserList({
               borderRadius: 12,
               border: isSel ? "2px solid #3b82f6" : "1px solid #e5e7eb",
               background: isSel ? "#e8f1ff" : "#fff",
-              cursor: "pointer",
+              cursor: isMe ? "not-allowed" : "pointer",  // 自分の場合はカーソルを変更
               transition: "all .15s",
             }}
           >
