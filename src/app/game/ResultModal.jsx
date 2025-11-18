@@ -60,14 +60,25 @@ export default function ResultModal({
           </tbody>
         </table>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <button onClick={onBack} style={btn}>ロビーへ戻る</button>
-          <button onClick={onRetry} style={btn}>同じルームで再戦</button>
-        </div>
+{/* ← ここを差し替え */}
+<div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+  <button
+    onClick={() => {
+      // 可能なら onHome を優先、なければ onBack を利用（親側でホーム遷移にしていればOK）
+      if (typeof onHome === "function") onHome();
+      else if (typeof onBack === "function") onBack();
+      else window.location.href = "/"; // 最終手段：直接ホームへ
+    }}
+    style={btn}
+  >
+    ホーム画面に戻る
+  </button>
+</div>
 
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-          ※ {Math.round(autoBackMs / 1000)}秒後に自動でロビーへ戻ります
-        </div>
+<div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
+  ※ {Math.round(autoBackMs / 1000)}秒後に自動でホームへ戻ります
+</div>
+
       </div>
     </div>
   );
