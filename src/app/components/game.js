@@ -397,6 +397,9 @@ export default function Game() {
         const { cardId, playerId, targetId } = msg.data || {};
         if (!cardId || !playerId) return;
 
+        // 自分が使ったカードはスキップ
+        if (playerId === clientId) return;
+
         if (targetId === clientId) {
           setAllPlayers((currentPlayers) => {
             const snapshot = {
@@ -406,7 +409,6 @@ export default function Game() {
                   name: clientId,
                   money: moneyRef.current,
                   holding: holdingRef.current,
-                  guards: 0,
                 }),
               },
             };
@@ -428,8 +430,6 @@ export default function Game() {
                 setMoney(newMoney);
               }
 
-              const newGuards = updatedPlayer.guards ?? 0;
-
               setTimeout(() => updatePresence(newMoney, newHolding), 50);
 
               setError(`⚔️ ${CARD_DEFINITIONS[cardId]?.name || "カード"} の効果を受けました！`);
@@ -439,7 +439,6 @@ export default function Game() {
                 ...currentPlayers,
                 [clientId]: {
                   ...(currentPlayers[clientId] ?? {}),
-                  guards: newGuards,
                   holding: newHolding,
                   money: newMoney,
                 },
@@ -558,19 +557,18 @@ export default function Game() {
 
     const card = hand[cardIndex];
     const cardDef = CARD_DEFINITIONS[card.id];
-
-    const cost = cardDef?.atbCost ?? 0;
-    if (cost > 0 && !spend(cost)) {
-      setError("❌ ATBが足りません");
-      setTimeout(() => setError(""), 2000);
-      return;
-    }
-
     const others = Object.keys(allPlayers).filter((id) => id !== clientId);
 
     if (cardDef?.needsTarget && others.length >= 1 && !selectedTarget) {
       setError("❌ ターゲットを選択してください");
       setTimeout(() => setError(""), 3000);
+      return;
+    }
+
+    const cost = cardDef?.atbCost ?? 0;
+    if (cost > 0 && !spend(cost)) {
+      setError("❌ ATBが足りません");
+      setTimeout(() => setError(""), 2000);
       return;
     }
 
@@ -585,7 +583,6 @@ export default function Game() {
               name: clientId,
               money: moneyRef.current,
               holding: holdingRef.current,
-              guards: 0,
             }),
           },
           ...(targetId
@@ -595,7 +592,6 @@ export default function Game() {
                     name: targetId,
                     money: 0,
                     holding: 0,
-                    guards: 0,
                   }),
                 },
               }
@@ -651,7 +647,6 @@ export default function Game() {
       if (sim.needsSync && sim.gameState?.players?.[clientId]) {
         const playerData = sim.gameState.players[clientId];
         const newHolding = playerData.holding;
-        const newGuards = playerData.guards;
         const newMoney = playerData.money;
 
         if (newHolding !== undefined && newHolding !== holdingRef.current) {
@@ -673,7 +668,7 @@ export default function Game() {
           setTimeout(() => updatePresence(finalMoney, finalHolding), 50);
         }
 
-        if (newGuards !== undefined || holdingChanged || moneyChanged) {
+        if (holdingChanged || moneyChanged) {
           setAllPlayers((prev) => ({
             ...prev,
             [clientId]: {
@@ -684,7 +679,6 @@ export default function Game() {
               }),
               money: newMoney !== undefined ? newMoney : moneyRef.current,
               holding: newHolding !== undefined ? newHolding : holdingRef.current,
-              guards: newGuards !== undefined ? newGuards : prev[clientId]?.guards || 0,
             },
           }));
         }
@@ -704,13 +698,19 @@ export default function Game() {
       return;
     }
 
+    // 自分に対する効果のカードかどうかを判定
+    const isSelfTargetCard = !cardDef?.needsTarget || targetId === clientId;
+
     try {
-      await chRef.current.publish("card-used", {
-        cardId: card.id,
-        playerId: clientId,
-        targetId,
-        timestamp: Date.now(),
-      });
+      // 自分に対する効果のカードは相手に送信しない
+      if (!isSelfTargetCard) {
+        await chRef.current.publish("card-used", {
+          cardId: card.id,
+          playerId: clientId,
+          targetId,
+          timestamp: Date.now(),
+        });
+      }
 
       setError(`✅ ${cardDef?.name || "カード"} を使用しました！`);
       setTimeout(() => setError(""), 3000);

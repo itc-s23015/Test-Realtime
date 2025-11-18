@@ -10,8 +10,6 @@ export const CARD_TYPES = {
 
   DRAW_TWO: 'DRAW_TWO',
 
-  GUARD_SHIELD: 'GUARD_SHIELD',
-
   INCREASE_HOLDINGS_SMALL: 'INCREASE_HOLDINGS_SMALL',
   INCREASE_HOLDINGS_MEDIUM: 'INCREASE_HOLDINGS_MEDIUM',
   INCREASE_HOLDINGS_LARGE: 'INCREASE_HOLDINGS_LARGE',
@@ -51,8 +49,8 @@ export const CARD_DEFINITIONS = {
         color: '#10b981',
         hoverColor: '#059669',
         effectAmount: -1,
-        imageSrc: '/image/cards/testCard.png',
-        imageAlt: '小ダメージ攻撃(株)カードの画像',
+        // imageSrc: '/image/cards/testCard.png',
+        // imageAlt: '小ダメージ攻撃(株)カードの画像',
         rarity: RARITY.NORMAL,
         atbCost: 30,
         cooldownMs: 3000,
@@ -94,17 +92,6 @@ export const CARD_DEFINITIONS = {
       effectAmount: 2,
       atbCost: 40,
     },
-    [CARD_TYPES.GUARD_SHIELD]: {
-      id: CARD_TYPES.GUARD_SHIELD,
-      name: 'ガード',
-      description: '次の被弾を1回だけ無効化（自分専用）',
-      emoji: '🛡️',
-      rarity: RARITY.NORMAL,
-      needsTarget: false,
-      cooldownMs: 6000,
-      effectAmount: 1,
-      atbCost: 35,
-  },
   [CARD_TYPES.INCREASE_HOLDINGS_SMALL]: {
         id: CARD_TYPES.INCREASE_HOLDINGS_SMALL,
         name: '持ち株増加(小)',
@@ -251,7 +238,6 @@ function ensurePlayerShape(p) {
         name: p?.name ?? '',
         money: typeof p?.money === 'number' ? p.money : 0,
         holding: typeof p?.holding === 'number' ? p.holding : 0,
-        guards: typeof p?.guards === 'number' ? p.guards : 0,
     };
 }
 
@@ -307,31 +293,11 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
     }
     const victim = newState.players[victimId];
 
-    // ガード消費ヘルパー（攻撃カードのみ）
-    const consumeGuardIfAny = () => {
-        if (victim.guards > 0) {
-            victim.guards -= 1;
-            return true;
-        }
-        return false;
-    };
-
     // カードタイプごとに効果を実行
     switch (cardType) {
         case CARD_TYPES.REDUCE_HOLDINGS_SMALL:
         case CARD_TYPES.REDUCE_HOLDINGS_MEDIUM:
         case CARD_TYPES.REDUCE_HOLDINGS_LARGE:
-            // 攻撃系：ガード判定
-            if (consumeGuardIfAny()) {
-                log = `🛡️ ${victim.name || victimId} のガードが発動し、効果は無効化！`;
-                return { 
-                    success: true, 
-                    needsSync: true, 
-                    gameState: newState, 
-                    log,
-                    message: log,
-                };
-            }
 
             // 保有株を減らす
             const prev = Number(victim.holding ?? 0);
@@ -388,18 +354,6 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         case CARD_TYPES.REDUCE_MONEY_SMALL:
         case CARD_TYPES.REDUCE_MONEY_MEDIUM:
         case CARD_TYPES.REDUCE_MONEY_LARGE:
-            // 攻撃系：ガード判定
-            if (consumeGuardIfAny()) {
-                log = `🛡️ ${victim.name || victimId} のガードが発動し、効果は無効化！`;
-                return { 
-                    success: true, 
-                    needsSync: true, 
-                    gameState: newState, 
-                    log,
-                    message: log,
-                };
-            }
-
             // 資金を減らす
             const prevVictimMoney = Number(victim.money ?? 0);
             const moneyDecrease = Number(card.effectAmount ?? 0);
@@ -425,18 +379,6 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
                 gameState: newState,
                 needsSync: false,
                 drawCount,
-                log,
-            };
-
-        case CARD_TYPES.GUARD_SHIELD:
-            // 🔥 修正: 自分にガード付与
-            self.guards = (self.guards || 0) + (card.effectAmount ?? 1);
-            log = `🛡️ ${self.name || playerId} にガードを付与（残り${self.guards}`;
-            return {
-                success: true,
-                message: `${card.name} 成功！ガードを獲得しました`,
-                gameState: newState,
-                needsSync: true,
                 log,
             };
 
