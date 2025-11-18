@@ -382,15 +382,18 @@ export default function Game() {
         setStockData(msg.data.data);
       });
 
-      ch.subscribe("stock-update", (msg) => {
-        if (!msg.data.isAuto) return;
+ch.subscribe("stock-update", (msg) => {
+  const { stockData: next, changeAmount, isAuto } = msg.data || {};
+  if (!next) return;
+  setStockData(next);
 
-        setStockData(msg.data.stockData);
-        const change = msg.data.changeAmount;
-        if (!msg.data.isAuto) {
-          addLog(change > 0 ? `📈 株価が ${Math.abs(change)} 円上昇` : `📉 株価が ${Math.abs(change)} 円下降`);
-        }
-      });
+  // ここでログを出す（自動更新か手動操作かでアイコンを変えてもOK）
+  const line = changeAmount > 0
+    ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "" : "（手動）"}`
+    : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "" : "（手動）"}`;
+
+  addLog(line);
+});
 
       ch.subscribe("card-draw-tick", (msg) => {
         if (handRef.current.length >= MAX_HAND_SIZE) return;
@@ -404,8 +407,10 @@ export default function Game() {
         const { cardId, playerId, targetId } = msg.data || {};
         if (!cardId || !playerId) return;
 
-        // 自分が使ったカードはスキップ
-        if (playerId === clientId) return;
+  const you = playerId === clientId ? "(あなた)" : "";
+  const cardName = CARD_DEFINITIONS[cardId]?.name || cardId;
+  const tail = targetId ? ` → 対象: ${targetId}` : "";
+  addLog(`🃏 ${playerId}${you} が ${cardName} を使用${tail}`);
 
         if (targetId === clientId) {
           setAllPlayers((currentPlayers) => {
