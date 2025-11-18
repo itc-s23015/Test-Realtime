@@ -23,6 +23,9 @@ export const CARD_TYPES = {
   REDUCE_MONEY_SMALL: 'REDUCE_MONEY_SMALL',
   REDUCE_MONEY_MEDIUM: 'REDUCE_MONEY_MEDIUM',
   REDUCE_MONEY_LARGE: 'REDUCE_MONEY_LARGE',
+
+  CHART_RISE: 'CHART_RISE',
+  CHART_FALL: 'CHART_FALL',
 };
 
 export const RARITY = {
@@ -213,6 +216,30 @@ export const CARD_DEFINITIONS = {
         atbCost: 70,
         cooldownMs: 8000,
     },
+    [CARD_TYPES.CHART_RISE]: {
+      id: CARD_TYPES.CHART_RISE,
+      name: 'チャート上昇',
+      description: '市場全体の株価が上昇する',
+      emoji: '📈',
+      needsTarget: false,
+      effectAmount: 1000,
+      rarity: RARITY.RARE,
+      atbCost: 60,
+      cooldownMs: 7000,
+      affectsChart: true,
+    },
+    [CARD_TYPES.CHART_FALL]: {
+      id: CARD_TYPES.CHART_FALL,
+      name: 'チャート下降',
+      description: '市場全体の株価が下降する',
+      emoji: '📉',
+      needsTarget: false,
+      effectAmount: -1000,
+      rarity: RARITY.RARE,
+      atbCost: 60,
+      cooldownMs: 7000,
+      affectsChart: true,
+    },
 };   
 
 // カード情報を配列へ
@@ -269,6 +296,7 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
 
     let log = '';
     let drawCount = 0;
+    let chartChange = 0;
 
     // ターゲットの決定
     const victimId = card.needsTarget ? targetId : playerId;
@@ -403,12 +431,39 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
         case CARD_TYPES.GUARD_SHIELD:
             // 🔥 修正: 自分にガード付与
             self.guards = (self.guards || 0) + (card.effectAmount ?? 1);
-            log = `🛡️ ${self.name || playerId} にガードを付与（残り${self.guards}）`;
+            log = `🛡️ ${self.name || playerId} にガードを付与（残り${self.guards}`;
             return {
                 success: true,
                 message: `${card.name} 成功！ガードを獲得しました`,
                 gameState: newState,
                 needsSync: true,
+                log,
+            };
+
+        case CARD_TYPES.CHART_RISE:
+            // 市場全体の株価上昇
+            chartChange = card.effectAmount ?? 1000;
+            log = `📈 市場全体の株価が上昇！`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ 市場全体の株価が上昇しました！`,
+                gameState: newState,
+                needsSync: false,
+                chartChange,
+                log,
+            };
+
+
+        case CARD_TYPES.CHART_FALL:
+            // 市場全体の株価下降
+            chartChange = card.effectAmount ?? -1000;
+            log = `📉 市場全体の株価が下降！`;
+            return {
+                success: true,
+                message: `${card.name} 成功！ 市場全体の株価が下降しました！`,
+                gameState: newState,
+                needsSync: false,
+                chartChange,
                 log,
             };
 
