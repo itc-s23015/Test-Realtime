@@ -66,11 +66,9 @@ export default function ResultModal({
     onClick={() => {
       // 可能なら onHome を優先、なければ onBack を利用（親側でホーム遷移にしていればOK）
       if (typeof onHome === "function") onHome();
-      else if (typeof onBack === "function") onBack();
       else window.location.href = "/"; // 最終手段：直接ホームへ
     }}
-    style={btn}
-  >
+    style={btn}>
     ホーム画面に戻る
   </button>
 </div>
