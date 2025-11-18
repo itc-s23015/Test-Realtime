@@ -87,6 +87,9 @@ export default function Game() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
+  //新しく追加
+  const resultsMapRef = useRef(new Map());
+
   // 参照（Ref）
   const clientRef = useRef(null);
   const chRef = useRef(null);
@@ -355,7 +358,7 @@ export default function Game() {
       if (isHost) {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
-        await ch.publish("start-countdown", { startAt, seconds: 5 });
+        await ch.publish("start-countdown", { startAt, seconds }); //修正
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
