@@ -315,6 +315,17 @@ export default function Game() {
       chRef.current = ch;
 
       await ch.attach();
+
+//新規追加 同名ユーザー禁止
+      const mem = await ch.presence.get()
+      const nameUsed = mem.some((m) => m.data?.name === clientId);
+
+      if (nameUsed) {
+        alert("同じ名前のプレイヤーが既に参加しています。別の名前を使ってください。")
+        router.push("/");
+        return;
+      }
+
       await ch.presence.enter({
         name: clientId,
         money: INITIAL_MONEY,
