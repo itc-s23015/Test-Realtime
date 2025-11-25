@@ -3,55 +3,93 @@
 import React, { useEffect, useState, useRef } from "react";
 import styles from "../styles/GameTimer.module.css";
 
-const GameTimer = ({ duration = 300, onTimeUp, startAt }) =>{
+const GameTimer = ({ duration = 300, onTimeUp, startAt }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
-  // const startTimeRef = useRef(Date.now());
-  const rafRef = useRef(null);
   const hasCalledTimeUp = useRef(false);
+  const rafRef = useRef(null);
+  const lastUpdateRef = useRef(Date.now());
 
-   useEffect(() => {
+  useEffect(() => {
     setTimeLeft(duration);
     hasCalledTimeUp.current = false;
-    // if (!startAt) {
-    //   localStartRef.current = Date.now();
-    // }
   }, [duration, startAt]);
 
-   useEffect(() => {
+  useEffect(() => {
     if (startAt == null) return;
-    const update = () => {
-      const baseMs = startAt;
-      const elapsed = Math.max(0, Math.floor((Date.now() - baseMs) / 1000));
-      const remaining = Math.max(duration - elapsed, 0);
 
-      // 1秒ごとにのみstate更新 → 無駄な再レンダリング防止
-      setTimeLeft((prev) => (Math.abs(prev - remaining) >= 1 ? remaining : prev));
+    // サーバー時刻ベースで残り時間を計算
+    const calcRemaining = () => {
+      const now = Date.now();
+      const elapsed = Math.max(0, Math.floor((now - startAt) / 1000));
+      return Math.max(duration - elapsed, 0);
+    };
 
-      // 終了時コールバック
+    // 即座に同期（初回 & タブ復帰時）
+    const syncNow = () => {
+      const remaining = calcRemaining();
+      setTimeLeft(remaining);
+      lastUpdateRef.current = Date.now();
+
+      // 終了チェック
       if (remaining <= 0 && !hasCalledTimeUp.current) {
         hasCalledTimeUp.current = true;
         onTimeUp?.();
-        cancelAnimationFrame(rafRef.current);
+      }
+      return remaining;
+    };
+
+    // 初回同期
+    syncNow();
+
+    // requestAnimationFrame での滑らか更新
+    const rafUpdate = () => {
+      const now = Date.now();
+      const remaining = calcRemaining();
+
+      // 1秒以上ずれているか、900ms以上更新していない場合に同期
+      if (Math.abs(timeLeft - remaining) >= 1 || now - lastUpdateRef.current >= 900) {
+        setTimeLeft(remaining);
+        lastUpdateRef.current = now;
+      }
+
+      // 終了チェック
+      if (remaining <= 0 && !hasCalledTimeUp.current) {
+        hasCalledTimeUp.current = true;
+        onTimeUp?.();
         return;
       }
 
-      // 常にrequestAnimationFrameで滑らかに進行
-      rafRef.current = requestAnimationFrame(update);
+      rafRef.current = requestAnimationFrame(rafUpdate);
     };
 
-    rafRef.current = requestAnimationFrame(update);
+    rafRef.current = requestAnimationFrame(rafUpdate);
 
-    // タブ復帰時にも補正
+    // バックアップ用のsetInterval（RAF停止時も動く）
+    const intervalId = setInterval(() => {
+      syncNow();
+    }, 1000);
+
+    // タブの可視性変更を監視して即座に同期
     const handleVisible = () => {
-      if (document.visibilityState === "visible") update();
+      if (document.visibilityState === "visible") {
+        syncNow();
+      }
     };
     document.addEventListener("visibilitychange", handleVisible);
 
+    // フォーカス時も同期
+    const handleFocus = () => {
+      syncNow();
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       cancelAnimationFrame(rafRef.current);
+      clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisible);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, [duration, onTimeUp, startAt]);
+  }, [duration, onTimeUp, startAt, timeLeft]);
 
   // 表示用フォーマット
   const mins = Math.floor(timeLeft / 60);
@@ -87,6 +125,6 @@ const GameTimer = ({ duration = 300, onTimeUp, startAt }) =>{
       </div>
     </div>
   );
-}
+};
 
 export default GameTimer;
