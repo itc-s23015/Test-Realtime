@@ -3,8 +3,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Ably from "ably";
+import { connection } from "next/server";
+import { usePathname } from "next/navigation";
 
-type Member = { id: string; name: string; ready: boolean };
+type Member = { 
+  id: string;
+  //新規追加 
+  connectionId: string; 
+  name: string; 
+  ready: boolean 
+};
 type Props = { room: string };
 
 const btn: React.CSSProperties = {
@@ -49,12 +57,21 @@ export default function LobbyClient({ room }: Props) {
   const [status, setStatus] = useState<Ably.Types.ConnectionState>("closed");
   const [members, setMembers] = useState<Member[]>([]);
   const [displayName, setDisplayName] = useState("");
+  const pathname = usePathname();
+  
+// 新規追加
+const [nameConflict, setNameConflict] = useState(false);
 
   const clientId = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return sessionStorage.getItem("playerName") || `player-${crypto.randomUUID().slice(0, 6)}`;
+    let id = sessionStorage.getItem("clientUUID");
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem("clientUUID", id);
+    }
+    return id;
   }, []);
-
+  
   const clientRef = useRef<Ably.Types.RealtimePromise | null>(null);
   const chRef = useRef<Ably.Types.RealtimeChannelPromise | null>(null);
   const channelName = useMemo(() => `rooms:${room}`, [room]);
@@ -89,9 +106,12 @@ export default function LobbyClient({ room }: Props) {
     async function refreshMembers() {
       const ch = chRef.current!;
       const mem = await ch.presence.get();
+
       const list: Member[] = mem
         .map((m) => ({
           id: m.clientId,
+          //新規追加
+          connectionId: m.connectionId,
           name: m.data?.name || m.clientId,
           ready: Boolean(m.data?.ready),
         }))
@@ -103,14 +123,24 @@ export default function LobbyClient({ room }: Props) {
       if (me && me.name) {
         setDisplayName((prev) => (prev === me.name ? prev : me.name));
       }
-    }
+      //  新規追加 //
+      // const sameNameCount = list.filter((m) => m.name === me?.name).length
+
+      // 新規追加 //
+      const myName = me?.name || "";
+      const conflict = list
+        .filter((m) => m.id !== clientId)
+        .some((m) => m.name === myName);
+     
+      setNameConflict(conflict);
+  }
 
     return () => {
       try { chRef.current?.unsubscribe(); } catch {}
       try { clientRef.current?.close(); } catch {}
     };
     // ★ 依存から displayName を外した
-  }, [channelName, clientId, room, router]);
+    }, [channelName, clientId, room, router]);
 
   const me = members.find((m) => m.id === clientId);
   const idsSorted = useMemo(() => members.map((m) => m.id).sort(), [members]);
@@ -118,6 +148,18 @@ export default function LobbyClient({ room }: Props) {
   const allReady = members.length >= 2 && members.every((m) => m.ready);
 
   const toggleReady = async () => {
+    // 新規追加 //
+    if (nameConflict) {
+      if (pathname.startsWith("/lobby")) {
+        alert("名前が重複しています。変更しないと準備完了にできません");
+      }
+      return;
+    }
+
+    if (!chRef.current) {
+      return;
+    }
+
     const ch = chRef.current!;
     const next = !me?.ready;
     await ch.presence.update({ name: displayName || clientId, ready: next });
@@ -129,7 +171,20 @@ export default function LobbyClient({ room }: Props) {
       alert("名前を入力してください");
       return;
     }
-    try { sessionStorage.setItem("playerName", name); } catch {}
+
+    //修正・追加
+    const conflict = members
+    .filter((m) => m.id !== clientId)
+    .some((m) => m.name === name);
+    setNameConflict(conflict)
+    if (conflict) {
+      alert("この名前は使用されています");
+      return;
+    }
+    
+    setNameConflict(false);
+
+    sessionStorage.setItem("playerName",name);
     await chRef.current?.presence.update({ name, ready: Boolean(me?.ready) });
   };
 
@@ -179,6 +234,13 @@ export default function LobbyClient({ room }: Props) {
           {/* ▼ スキップして入室 を削除 */}
           <button onClick={leaveLobby} style={btnDanger}>退室</button>
         </div>
+
+        {nameConflict && (
+          <div style={{ color: "red", marginBottom: 12}}>
+            ※ この名前は使用されています
+          </div>
+        )}
+
       </header>
 
       <section style={{ background: "#ffffffff", border: "1px solid #000000ff", borderRadius: 12, padding: 12 }}>
@@ -203,10 +265,12 @@ export default function LobbyClient({ room }: Props) {
             準備OK: {members.filter((m) => m.ready).length}/{members.length}
           </span>
         </div>
+       
 
+       
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
           {members.map((m) => (
-            <li key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffffff", border: "1px solid #5e2191ff", borderRadius: 10, padding: 10 }}>
+            <li key={m.connectionId} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffffff", border: "1px solid #5e2191ff", borderRadius: 10, padding: 10 }}>
               <div style={{ width: 10, height: 10, borderRadius: 9999, background: m.ready ? "#10b981" : "#ffffffff" }} />
               <div style={{ fontWeight: 700 }}>{m.name}</div>
               <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>{m.ready ? "Ready" : "Not ready"}</div>
@@ -216,8 +280,32 @@ export default function LobbyClient({ room }: Props) {
 
         {/* 操作 */}
         <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-          <button onClick={toggleReady} style={btn}>{me?.ready ? "準備解除" : "準備OK"}</button>
-          <button onClick={start} disabled={!isHost || !allReady} style={{ ...btn, background: !isHost || !allReady ? "#88a9e6ff" : "#3b82f6" }}>
+          <button 
+          onClick={toggleReady}
+          disabled={nameConflict} //新規追加
+          style={{
+            ...btn,
+            background: nameConflict ? "#aaa" : btn.background,
+            cursor: nameConflict ? "not-allowed" : "pointer"
+          }
+        }
+          >
+            {me?.ready ? "準備解除" : "準備OK"}
+          </button>
+
+          <button 
+            onClick={start} 
+            disabled={!isHost || !allReady || nameConflict}
+            style={{
+              ...btn,
+              background: (!isHost || !allReady || nameConflict)
+                ? "#88a9e6ff"
+                : "#3b82f6",
+              cursor: (!isHost || !allReady || nameConflict)
+                ? "not-allowed"
+                : "pointer",
+            }}
+            >
             開始（ホスト）
           </button>
         </div>
