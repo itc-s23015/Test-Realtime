@@ -9,6 +9,7 @@ export const CARD_TYPES = {
   REDUCE_HOLDINGS_LARGE: 'REDUCE_HOLDINGS_LARGE',
 
   DRAW_TWO: 'DRAW_TWO',
+  REMOVE_TWO: 'REMOVE_TWO',
 
   INCREASE_HOLDINGS_SMALL: 'INCREASE_HOLDINGS_SMALL',
   INCREASE_HOLDINGS_MEDIUM: 'INCREASE_HOLDINGS_MEDIUM',
@@ -137,6 +138,18 @@ export const CARD_DEFINITIONS = {
         atbCost: 70,
         cooldownMs: 3000,
     },
+    [CARD_TYPES.REMOVE_TWO]: {
+  id: CARD_TYPES.REMOVE_TWO,
+  name: '2枚削除',
+  description: '相手の手札を2枚ランダムに削除する',
+  emoji: '🗑️',
+  rarity: RARITY.RARE,
+  needsTarget: true,
+  effectAmount: 2,         // 削除枚数
+  atbCost: 45,             // DRAW_TWO より少し重い
+  cooldownMs: 5000,        // 少し重めでバランス調整
+},
+
      [CARD_TYPES.INCREASE_MONEY_SMALL]: {
         id: CARD_TYPES.INCREASE_MONEY_SMALL,
         name: '資金増加(小)',
@@ -170,7 +183,19 @@ export const CARD_DEFINITIONS = {
         atbCost: 65,
         cooldownMs: 6000,
     },
-    [CARD_TYPES.REDUCE_MONEY_SMALL]: {
+        [CARD_TYPES.CHART_RISE]: {
+      id: CARD_TYPES.CHART_RISE,
+      name: 'チャート上昇',
+      description: '市場全体の株価が上昇する',
+      emoji: '📈',
+      needsTarget: false,
+      effectAmount: 1000,
+      rarity: RARITY.RARE,
+      atbCost: 60,
+      cooldownMs: 7000,
+      affectsChart: true,
+    },
+        [CARD_TYPES.REDUCE_MONEY_SMALL]: {
         id: CARD_TYPES.REDUCE_MONEY_SMALL,
         name: '資金減少(小)',
         description: '相手の資金を10000減らす',
@@ -202,18 +227,6 @@ export const CARD_DEFINITIONS = {
         rarity: RARITY.SUPERRARE,
         atbCost: 70,
         cooldownMs: 8000,
-    },
-    [CARD_TYPES.CHART_RISE]: {
-      id: CARD_TYPES.CHART_RISE,
-      name: 'チャート上昇',
-      description: '市場全体の株価が上昇する',
-      emoji: '📈',
-      needsTarget: false,
-      effectAmount: 1000,
-      rarity: RARITY.RARE,
-      atbCost: 60,
-      cooldownMs: 7000,
-      affectsChart: true,
     },
     [CARD_TYPES.CHART_FALL]: {
       id: CARD_TYPES.CHART_FALL,

@@ -86,7 +86,7 @@
   border: 1px solid #c7d2fe;
 }
 
-/* レアリティバッジ（関数風クラス：JS側で付与） */
+/* レアリティバッジ（CardListPage と統一） */
 .badgeRarityN,
 .badgeRarityR,
 .badgeRaritySR {
@@ -96,9 +96,26 @@
   border-radius: 999px;
   border: 1px solid transparent;
 }
-.badgeRarityN { color: #111827; background: #f3f4f6; border-color: #e5e7eb; }
-.badgeRarityR { color: #1f2937; background: #d1fae5; border-color: #a7f3d0; }
-.badgeRaritySR { color: #3b0764; background: #ede9fe; border-color: #ddd6fe; }
+/* NORMAL（N） = 薄いグレー */
+.badgeRarityN {
+  color: #111827;
+  background: #f5f5f5;
+  border-color: #e5e5e5;
+}
+
+/* RARE（R） = 淡い青 */
+.badgeRarityR {
+  color: #1e3a8a;
+  background: #e0f2fe;
+  border-color: #bae6fd;
+}
+
+/* SUPER RARE（SR） = 淡い金色 */
+.badgeRaritySR {
+  color: #78350f;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
 
 /* メモ */
 .textarea {

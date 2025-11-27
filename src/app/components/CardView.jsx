@@ -5,12 +5,25 @@ import React, { useState, useMemo } from "react";
 import { CARD_DEFINITIONS, RARITY } from "./cardDefinitions";
 import styles from "../styles/CardView.module.css";
 
-/** レアリティ→色のデフォルト */
+/** レアリティ→色のデフォルト（CardListPage と完全統一） */
 const RARITY_COLORS = {
-  [RARITY.NORMAL]:    { color: "#475569", hoverColor: "#334155" }, // slate
-  [RARITY.RARE]:      { color: "#2563eb", hoverColor: "#1d4ed8" }, // blue
-  [RARITY.SUPERRARE]: { color: "#a855f7", hoverColor: "#9333ea" }, // purple
+  [RARITY.NORMAL]: {
+    color: "#111827",         // 濃い文字
+    hoverColor: "#e5e5e5",    // 少し濃いグレー
+    bg: "#f5f5f5",            // NORMAL背景
+  },
+  [RARITY.RARE]: {
+    color: "#1e3a8a",         // 青系テキスト
+    hoverColor: "#bae6fd",    // hover時やや濃い青
+    bg: "#e0f2fe",            // RARE背景
+  },
+  [RARITY.SUPERRARE]: {
+    color: "#78350f",         // 金系テキスト
+    hoverColor: "#fde68a",    // hover時やや濃い金
+    bg: "#fef3c7",            // SR背景
+  },
 };
+
 
 /** 定義の足りないUI項目を補完して正規化 */
 function normalizeDef(raw) {

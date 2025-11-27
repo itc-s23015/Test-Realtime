@@ -23,7 +23,7 @@ const PlayerInfo = ({ money = 0, holding = 0, roomNumber = "" }) => {
             </div>
             
             <div className={styles.autSection}>
-                <span className={styles.autoText}>自動変動中（2秒ごと）</span>
+                <span className={styles.autoText}>自動変動中（10秒ごと）</span>
             </div>
         </div>
     );

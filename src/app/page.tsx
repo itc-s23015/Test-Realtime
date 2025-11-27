@@ -65,6 +65,15 @@ export default function HomePage() {
         <button onClick={goCreate} style={btnPrimary}>ルーム作成へ</button>
         <button onClick={joinRoom} style={btnGhost}>ルームに参加</button>
       </div>
+      <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+  <button onClick={() => router.push("/how-to-play")} style={btnGhost}>
+    遊び方 / How to Play
+  </button>
+  <button onClick={() => router.push("/card-list")} style={btnGhost}>
+    カード図鑑 / Card List
+  </button>
+</div>
+
     </main>
   );
 }

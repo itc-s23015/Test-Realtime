@@ -1,0 +1,156 @@
+.pageContainer {
+  max-width: 900px;
+  margin: 40px auto;
+  padding: 16px;
+  line-height: 1.7;
+  font-family: system-ui, sans-serif;
+}
+
+/* タイトル */
+.pageTitle {
+  font-size: 28px;
+  margin-bottom: 24px;
+  font-weight: 700;
+  color: #111;
+}
+
+/* Box（セクション / カード共通） */
+.box {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  transition: 0.2s ease;
+}
+
+.box:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+}
+
+/* セクションタイトル（HowToPlay） */
+.sectionTitle {
+  font-size: 20px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* カード画像 */
+.cardImage {
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+/* カード名 */
+.cardName {
+  font-size: 18px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* カード説明など */
+.text {
+  font-size: 15px;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.smallText {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Grid（CardList） */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .pageContainer {
+    padding: 12px;
+  }
+  .pageTitle {
+    font-size: 24px;
+  }
+  .sectionTitle {
+    font-size: 18px;
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+/* タイトル + ボタン を横並びに */
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+/* ホームに戻るボタン */
+.backBtn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.backBtn:hover {
+  background: #f2f2f2;
+}
+
+/* レアリティ背景色 */
+.rarityN {
+  background: #f5f5f5;  /* Normal */
+}
+
+.rarityR {
+  background: #e0f2fe;  /* Rare */
+}
+
+.raritySR {
+  background: #fef3c7;  /* Super Rare */
+}
+
+/* カード本体（画像なしカードデザイン） */
+.cardBox {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+  transition: 0.2s ease;
+}
+
+.cardBox:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.cardName {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.cardInfo {
+  font-size: 14px;
+  color: #444;
+  margin: 2px 0;
+}
+
+.cardText {
+  font-size: 13px;
+  color: #555;
+  margin-top: 8px;
+  line-height: 1.5;
+}

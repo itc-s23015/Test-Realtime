@@ -160,7 +160,7 @@ export default function Game() {
     [clientId]
   );
 
-  // ATBゲージ
+  // 行動ゲージ
   const syncATBToPresence = useCallback(
     (v) => updatePresence(moneyRef.current, holdingRef.current, v),
     [updatePresence]
@@ -582,7 +582,7 @@ ch.subscribe("stock-update", (msg) => {
 
     const cost = cardDef?.atbCost ?? 0;
     if (cost > 0 && !spend(cost)) {
-      setError("❌ ATBが足りません");
+      setError("❌ 行動ゲージが足りません");
       setTimeout(() => setError(""), 2000);
       return;
     }
@@ -841,7 +841,7 @@ ch.subscribe("stock-update", (msg) => {
 
       {!isRightSidebarOpen && (
         <div className={styles.rightSidebarSlot}>
-          <ATBBar value={atb} max={100} label="ATB" />
+          <ATBBar value={atb} max={100} label="ゲージ" />
           <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
         </div>
       )}
