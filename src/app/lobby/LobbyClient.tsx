@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Ably from "ably";
-import { connection } from "next/server";
+// import { connection } from "next/server";
 import { usePathname } from "next/navigation";
 
 type Member = { 
@@ -74,6 +74,8 @@ const [nameConflict, setNameConflict] = useState(false);
   
   const clientRef = useRef<Ably.Types.RealtimePromise | null>(null);
   const chRef = useRef<Ably.Types.RealtimeChannelPromise | null>(null);
+
+  const closingRef = useRef(false);
   const channelName = useMemo(() => `rooms:${room}`, [room]);
 
   useEffect(() => {
@@ -96,7 +98,7 @@ const [nameConflict, setNameConflict] = useState(false);
 
       await refreshMembers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshMembers);
-      ch.subscribe("event", (msg) => {
+      ch.subscribe("event", async (msg) => {
         if (msg.data?.type === "START") {
           router.push(`/game?room=${encodeURIComponent(room)}`);
         }
@@ -106,8 +108,17 @@ const [nameConflict, setNameConflict] = useState(false);
     async function refreshMembers() {
       const ch = chRef.current!;
       const mem = await ch.presence.get();
+//新規追加
+      const latest = new Map<string, Ably.Types.PresenceMessage>();
 
-      const list: Member[] = mem
+      mem.forEach((m) => {
+        const prev = latest.get(m.clientId);
+        if (!prev || (m.timestamp ?? 0) > (prev.timestamp ?? 0)) {
+          latest.set(m.clientId, m);
+        }
+      })
+
+      const list: Member[] = Array.from(latest.values())
         .map((m) => ({
           id: m.clientId,
           //新規追加
@@ -128,16 +139,19 @@ const [nameConflict, setNameConflict] = useState(false);
 
       // 新規追加 //
       const myName = me?.name || "";
-      const conflict = list
-        .filter((m) => m.id !== clientId)
-        .some((m) => m.name === myName);
-     
+      const conflict = list.some((m) => m.id !== clientId && m.name === myName);
       setNameConflict(conflict);
-  }
-
+  } 
+    
     return () => {
-      try { chRef.current?.unsubscribe(); } catch {}
-      try { clientRef.current?.close(); } catch {}
+      if (closingRef.current) return;
+      closingRef.current = true;
+
+      (async () => {
+        try { await chRef.current?.presence.leave(); } catch {}
+        try { chRef.current?.unsubscribe(); } catch {}
+        try { await clientRef.current?.close(); } catch {}
+      })();
     };
     // ★ 依存から displayName を外した
     }, [channelName, clientId, room, router]);
@@ -146,6 +160,18 @@ const [nameConflict, setNameConflict] = useState(false);
   const idsSorted = useMemo(() => members.map((m) => m.id).sort(), [members]);
   const isHost = idsSorted[0] === clientId;
   const allReady = members.length >= 2 && members.every((m) => m.ready);
+
+  useEffect(() => {
+    if (!isHost) return;
+    if (members.length < 2) return;
+    if (!allReady) return;
+
+    chRef.current?.publish("event", {
+      type: "START",
+      by: clientId,
+      ts: Date.now(),
+    });
+  }, [isHost, allReady, members, clientId]);
 
   const toggleReady = async () => {
     // 新規追加 //
@@ -270,7 +296,7 @@ const [nameConflict, setNameConflict] = useState(false);
        
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
           {members.map((m) => (
-            <li key={m.connectionId} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffffff", border: "1px solid #5e2191ff", borderRadius: 10, padding: 10 }}>
+            <li key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffffff", border: "1px solid #5e2191ff", borderRadius: 10, padding: 10 }}>
               <div style={{ width: 10, height: 10, borderRadius: 9999, background: m.ready ? "#10b981" : "#ffffffff" }} />
               <div style={{ fontWeight: 700 }}>{m.name}</div>
               <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.8 }}>{m.ready ? "Ready" : "Not ready"}</div>

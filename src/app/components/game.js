@@ -131,7 +131,17 @@ export default function Game() {
   // クライアントID生成
   const clientId = useMemo(() => {
     if (typeof window === "undefined") return "";
-    return sessionStorage.getItem("playerName") || `player-${crypto.randomUUID().slice(0, 6)}`;
+    let id = sessionStorage.getItem("clientUUID");
+    if (!id) {
+      id = crypto.randomUUID();
+      sessionStorage.setItem("clientUUID", id);
+    }
+    return id;
+  }, []);
+
+  const displayName = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("playerName") || "noname";
   }, []);
 
   const roomU = useMemo(() => (roomNumber ? roomNumber.toUpperCase() : ""), [roomNumber]);
@@ -148,7 +158,7 @@ export default function Game() {
       if (!chRef.current) return;
       try {
         await chRef.current.presence.update({
-          name: clientId,
+          name: displayName,
           money: newMoney,
           holding: newHolding,
           atb: typeof newAtb === "number" ? newAtb : undefined,
@@ -157,7 +167,7 @@ export default function Game() {
         console.error("❌ Presence更新失敗:", e);
       }
     },
-    [clientId]
+    [displayName]
   );
 
   // 行動ゲージ
@@ -316,22 +326,15 @@ export default function Game() {
 
       await ch.attach();
 
-//新規追加 同名ユーザー禁止
-      const mem = await ch.presence.get()
-      const nameUsed = mem.some((m) => m.data?.name === clientId);
-
-      if (nameUsed) {
-        alert("同じ名前のプレイヤーが既に参加しています。別の名前を使ってください。")
-        router.push("/");
-        return;
-      }
+      const initialName =
+        (typeof window !== "undefined" && sessionStorage.getItem("playerName")) || clientId;
 
       await ch.presence.enter({
-        name: clientId,
+        name: displayName,
         money: INITIAL_MONEY,
         holding: INITIAL_HOLDING,
         atb: 0,
-      });
+      })
 
       addLog("🎮 対戦が開始されました！");
 
@@ -355,6 +358,10 @@ export default function Game() {
       ch.subscribe("start-countdown", (msg) => {
         const { startAt, seconds = 5 } = msg.data || {};
         if (!Number.isFinite(startAt)) return;
+
+        //新規追加
+        setGameStartAt(startAt + seconds * 1000);
+
         setCdSeconds(seconds);
         setCountdownStartAt(startAt);
         setShowStartCD(true);
@@ -792,7 +799,6 @@ ch.subscribe("stock-update", (msg) => {
             seconds={cdSeconds}
             onFinish={() => {
               setShowStartCD(false);
-              setGameStartAt(Date.now());
             }}
           />
         )}
