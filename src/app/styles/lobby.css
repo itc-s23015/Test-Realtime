@@ -1,0 +1,27 @@
+.lobbyContainer {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.lobbyBox {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.lobbyList {
+  display: grid;
+  gap: 10px;
+}
+
+.lobbyItem {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 10px;
+  border-radius: 10px;
+}

@@ -1,0 +1,27 @@
+.playerBox {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 12px;
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.playerName {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.statBox {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 6px 10px;
+  border-radius: 10px;
+}

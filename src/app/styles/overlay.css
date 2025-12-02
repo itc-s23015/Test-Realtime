@@ -1,0 +1,26 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 100;
+}
+
+.overlayContent {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 20px 30px;
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 4px 10px var(--shadow);
+}
+
+.resultTitle {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}

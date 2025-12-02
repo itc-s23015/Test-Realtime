@@ -1,0 +1,83 @@
+/* ===========================
+   Light / Dark テーマ変数
+=========================== */
+
+/* Light Theme */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-secondary: #f9fafb;
+  --panel-bg: #ffffff;
+  --panel-border: #d1d5db;
+  --text: #111827;
+  --text-secondary: #374151;
+
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+
+  --shadow: rgba(0, 0, 0, 0.05);
+
+  /* レアリティ色 */
+  --rarity-n-bg: #f5f5f5;
+  --rarity-n-text: #111827;
+
+  --rarity-r-bg: #e0f2fe;
+  --rarity-r-text: #1e3a8a;
+
+  --rarity-sr-bg: #fef3c7;
+  --rarity-sr-text: #78350f;
+
+  /* ボタン */
+  --btn-bg: #111827;
+  --btn-text: #ffffff;
+  --btn-border: #111827;
+
+  --btn-ghost-bg: #ffffff;
+  --btn-ghost-text: #111827;
+  --btn-ghost-border: #d1d5db;
+
+  /* サイドバー */
+  --sidebar-bg: #ffffff;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --bg-secondary: #1e293b;
+  --panel-bg: #1e293b;
+  --panel-border: #334155;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+
+  --card-bg: #1e293b;
+  --card-border: #334155;
+
+  --shadow: rgba(0, 0, 0, 0.3);
+
+  /* レアリティ色 */
+  --rarity-n-bg: #334155;
+  --rarity-n-text: #e2e8f0;
+
+  --rarity-r-bg: #1e3a8a;
+  --rarity-r-text: #dbeafe;
+
+  --rarity-sr-bg: #92400e;
+  --rarity-sr-text: #fde68a;
+
+  /* ボタン */
+  --btn-bg: #e2e8f0;
+  --btn-text: #0f172a;
+  --btn-border: #334155;
+
+  --btn-ghost-bg: #1e293b;
+  --btn-ghost-text: #e2e8f0;
+  --btn-ghost-border: #475569;
+
+  /* サイドバー */
+  --sidebar-bg: #1e293b;
+}
+
+/* 全ページ共通 */
+body {
+  background: var(--bg);
+  color: var(--text);
+}

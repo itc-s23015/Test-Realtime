@@ -1,0 +1,29 @@
+.tradePanel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  padding: 16px;
+  border-radius: 12px;
+  color: var(--text);
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.tradeTitle {
+  font-weight: bold;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.tradeButtons {
+  display: flex;
+  gap: 12px;
+}
+
+.tradeInput {
+  width: 100%;
+  padding: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: var(--text);
+  margin-bottom: 10px;
+}

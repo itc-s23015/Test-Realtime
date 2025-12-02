@@ -1,0 +1,16 @@
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+/* レアリティ背景 */
+.rarityN { background: var(--rarity-n-bg); color: var(--rarity-n-text); }
+.rarityR { background: var(--rarity-r-bg); color: var(--rarity-r-text); }
+.raritySR { background: var(--rarity-sr-bg); color: var(--rarity-sr-text); }
+
+.cardTitle {
+  font-weight: bold;
+  margin-bottom: 6px;
+}
