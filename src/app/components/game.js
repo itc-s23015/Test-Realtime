@@ -84,8 +84,8 @@ export default function Game() {
   const [gameStartAt, setGameStartAt] = useState(null);
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
   //新しく追加
   const resultsMapRef = useRef(new Map());

@@ -1,26 +1,92 @@
-.sideBar {
+/* ===========================================
+   サイドバー本体（Light/Dark 自動対応）
+=========================================== */
+.sidebar {
   position: fixed;
   top: 0;
   bottom: 0;
-  width: 300px;
-  background: var(--sidebar-bg);
-  border-left: 1px solid var(--panel-border);
-  border-right: 1px solid var(--panel-border);
-  box-shadow: 0 0 10px var(--shadow);
-  overflow-y: auto;
-  z-index: 50;
-  transition: transform 0.3s ease;
+  width: 280px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 8px 24px var(--shadow);
+
+  transition: transform 0.25s ease;
+  z-index: 40;
 }
 
-.sideBar.left { left: 0; transform: translateX(-100%); }
-.sideBar.left.open { transform: translateX(0); }
+/* サイドバー位置 */
+.sidebarLeft { left: 0; }
+.sidebarRight { right: 0; }
 
-.sideBar.right { right: 0; transform: translateX(100%); }
-.sideBar.right.open { transform: translateX(0); }
+/* 開閉アニメーション */
+.sidebarOpen {
+  transform: translateX(0);
+}
 
-.sideBarHeader {
-  padding: 12px;
-  font-size: 16px;
-  font-weight: bold;
-  border-bottom: 1px solid var(--panel-border);
+.sidebarClosedLeft {
+  transform: translateX(-98%); /* ← ボタン位置が見えるように調整 */
+}
+
+.sidebarClosedRight {
+  transform: translateX(98%);
+}
+
+/* ===========================================
+   画面端に常に存在する“薄いトグルボタン”
+=========================================== */
+.sidebarToggle {
+  position: fixed;
+  top: 50%;                     /* ← 画面中央寄せ */
+  transform: translateY(-50%); /* 中央に配置 */
+  width: 30px;
+  height: 60px;
+
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  box-shadow: 0 4px 10px var(--shadow);
+  cursor: pointer;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  opacity: 0.25;               /* ← 普段は薄くする */
+  transition: opacity 0.2s, background 0.2s, color 0.2s;
+  z-index: 60;
+}
+
+/* 左右配置 */
+.toggleLeft  { left: 0;  border-radius: 0 8px 8px 0; }
+.toggleRight { right: 0; border-radius: 8px 0 0 8px; }
+
+/* マウスが当たったら強調 */
+.sidebarToggle:hover {
+  opacity: 1;
+}
+
+/* サイドバー開状態なら更に強調＋色を変えて視認性UP
+.sidebarToggle.open {
+  opacity: 1;
+  background: var(--bg-secondary);
+  border-color: var(--rarity-r-text); 
+  color: var(--rarity-r-text);
+} */
+
+/* ===========================================
+   サイドバー内部
+=========================================== */
+.sidebarTitle {
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.sidebarContent {
+  overflow-y: auto;
+  color: var(--text);
 }

@@ -1,31 +1,33 @@
 import React from "react";
-import styles from "../styles/SideBar.module.css";
+import "../styles/sidebar.css";
 
 const SideBar = ({ side, open, onToggle, title, children }) => {
   const isLeft = side === "left";
 
   return (
-    <aside
-      className={`${styles.sidebar} ${isLeft ? styles.sidebarLeft : styles.sidebarRight} ${
-        open
-          ? styles.sidebarOpen
-          : isLeft
-          ? styles.sidebarClosedLeft
-          : styles.sidebarClosedRight
-      }`}
-    >
+    <>
+      {/* ← 画面端のトグルボタン */}
       <button
         onClick={onToggle}
-        aria-label="toggle sidebar"
-        className={`${styles.sidebarToggle} ${
-          isLeft ? styles.sidebarToggleLeft : styles.sidebarToggleRight
-        }`}
+        className={`sidebarToggle ${isLeft ? "toggleLeft" : "toggleRight"} ${open ? "open" : ""}`}
       >
         {isLeft ? (open ? "◀" : "▶") : open ? "▶" : "◀"}
       </button>
-      <div className={styles.sidebarTitle}>{title}</div>
-      <div className={styles.sidebarContent}>{children}</div>
-    </aside>
+
+      <aside
+        className={`sidebar ${isLeft ? "sidebarLeft" : "sidebarRight"} ${
+          open
+            ? "sidebarOpen"
+            : isLeft
+            ? "sidebarClosedLeft"
+            : "sidebarClosedRight"
+        }`}
+      >
+        <div className="sidebarTitle">{title}</div>
+        <div className="sidebarContent">{children}</div>
+      </aside>
+    </>
   );
-}
+};
+
 export default SideBar;
