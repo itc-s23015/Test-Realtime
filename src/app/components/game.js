@@ -84,8 +84,8 @@ export default function Game() {
   const [gameStartAt, setGameStartAt] = useState(null);
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
   //新しく追加
   const resultsMapRef = useRef(new Map());
@@ -407,11 +407,6 @@ ch.subscribe("stock-update", (msg) => {
   const { stockData: next, changeAmount, isAuto } = msg.data || {};
   if (!next) return;
   setStockData(next);
-
-  // ここでログを出す（自動更新か手動操作かでアイコンを変えてもOK）
-  const line = changeAmount > 0
-    ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "" : "（手動）"}`
-    : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "" : "（手動）"}`;
 
   addLog(line);
 });
