@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "../styles//PlayerInfo.module.css";
+import styles from "../styles/PlayerInfo.module.css";
 
 const PlayerInfo = ({ money = 0, holding = 0, roomNumber = "" }) => {
     return (
@@ -18,7 +18,9 @@ const PlayerInfo = ({ money = 0, holding = 0, roomNumber = "" }) => {
 
                 <div className={styles.holdingBox}>
                     <div className={styles.label}>保有株数</div>
-                    <div className={styles.holding}>{(holding || 0).toLocaleString()}株</div>
+                    <div className={styles.holding}>
+                        {(holding || 0).toLocaleString()}株
+                    </div>
                 </div>
             </div>
             

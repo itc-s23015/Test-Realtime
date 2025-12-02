@@ -6,14 +6,15 @@ const SideBar = ({ side, open, onToggle, title, children }) => {
 
   return (
     <>
-      {/* ← 画面端のトグルボタン */}
+      {/* 画面端に固定されたトグルボタン */}
       <button
         onClick={onToggle}
-        className={`sidebarToggle ${isLeft ? "toggleLeft" : "toggleRight"} ${open ? "open" : ""}`}
+        className={`sidebarToggle ${isLeft ? "toggleLeft" : "toggleRight"}`}
       >
         {isLeft ? (open ? "◀" : "▶") : open ? "▶" : "◀"}
       </button>
 
+      {/* サイドバー本体 */}
       <aside
         className={`sidebar ${isLeft ? "sidebarLeft" : "sidebarRight"} ${
           open
