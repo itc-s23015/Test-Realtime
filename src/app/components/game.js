@@ -19,6 +19,8 @@ import useATB from "./atb/useATB";
 import ATBBar from "./ATBBar"; 
 import useRandomEvents from "./events/useRandomEvents";
 import LeftHelpPanel from "./LeftHelpPanel";
+import Toast from "./Toast";
+
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -410,8 +412,8 @@ ch.subscribe("stock-update", (msg) => {
 
    if (changeAmount) {
     const line = changeAmount > 0
-      ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
-      : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
+      // ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
+      // : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
     addLog(line);
   }
 });
@@ -789,6 +791,19 @@ ch.subscribe("stock-update", (msg) => {
     <span className={styles.statusBadge} style={{ backgroundColor: statusBadge.color }}>
       {statusBadge.text}
     </span>
+        {error && (
+          <div
+            className={`${styles.errorBar} ${
+              error.startsWith("✅") ? styles.errorBarSuccess : styles.errorBarError
+            }`}
+          >
+            {error.startsWith("✅") ? "" : "⚠️ "}
+            {error}
+          </div>
+        )}
+        {/* 🔔 中央トースト通知 */}
+<Toast message={error} />
+
     <div className={styles.timerWrapper}>
       <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
     </div>
@@ -808,17 +823,6 @@ ch.subscribe("stock-update", (msg) => {
               }
             }}
           />
-        )}
-
-        {error && (
-          <div
-            className={`${styles.errorBar} ${
-              error.startsWith("✅") ? styles.errorBarSuccess : styles.errorBarError
-            }`}
-          >
-            {error.startsWith("✅") ? "" : "⚠️ "}
-            {error}
-          </div>
         )}
 
   {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
@@ -878,7 +882,7 @@ ch.subscribe("stock-update", (msg) => {
         side="right"
         open={isRightSidebarOpen}
         onToggle={() => setIsRightSidebarOpen((v) => !v)}
-        title="ログ / ユーザー一覧"
+        title="ログ"
       >
         <Log log={logs} />
       </SideBar>

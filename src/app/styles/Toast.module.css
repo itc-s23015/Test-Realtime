@@ -1,0 +1,35 @@
+/* ==== 画面中央配置 ==== */
+.toastContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2000; /* モーダルより手前 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none; /* クリックを邪魔しない */
+}
+
+/* ==== トースト本体 ==== */
+.toast {
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 2px solid var(--panel-border);
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+
+  animation: fadeInOut 2.5s ease forwards;
+  white-space: nowrap;
+}
+
+/* ==== アニメーション ==== */
+@keyframes fadeInOut {
+  0%   { opacity: 0; transform: translate(-50%, -48%) scale(0.95); }
+  10%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -52%) scale(0.95); }
+}
