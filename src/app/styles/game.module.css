@@ -45,7 +45,7 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* 左上：ATB+手札（固定高さ） */
