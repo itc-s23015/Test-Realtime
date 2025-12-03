@@ -243,3 +243,65 @@
 .limitText {
   padding: 4px 0;
 }
+
+/* 共通のボタンスタイル */
+.tradeButton {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: 999px;          /* カプセル型 */
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  transform: translateY(0);
+  transition:
+    transform 0.08s ease-out,
+    box-shadow 0.08s ease-out,
+    filter 0.12s ease-out,
+    opacity 0.12s ease-out;
+  white-space: nowrap;
+}
+
+/* 買うボタン（通常時） */
+.buyButton {
+  background: linear-gradient(135deg, #1abc9c, #2ecc71);
+}
+
+/* 買うボタン（ホバー時） */
+.buyButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1dd1a1, #2ecc71);
+}
+
+/* 売るボタン（通常時） */
+.sellButton {
+  background: linear-gradient(135deg, #e74c3c, #e67e22);
+}
+
+/* 売るボタン（ホバー時） */
+.sellButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff6b6b, #ff9f43);
+}
+
+/* 共通のホバー挙動（浮く感じだけ） */
+.tradeButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+/* クリック中の押し込み感 */
+.tradeButton:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  filter: brightness(0.97);
+}
+
+/* 無効状態（資金不足 / 売却不可など） */
+.tradeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  filter: grayscale(0.3);
+}
