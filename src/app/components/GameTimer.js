@@ -11,7 +11,19 @@ const GameTimer = ({ duration = 300, onTimeUp, startAt }) => {
 
   // startAt が変わったらリセット
   useEffect(() => {
-    console.log("⏰ タイマー初期化:", { duration, startAt });
+    if (startAt != null) {
+      const now = Date.now();
+      const delay = now - startAt;
+      console.log("⏰ タイマー初期化:", { 
+        duration, 
+        startAt, 
+        startTime: new Date(startAt).toLocaleTimeString(),
+        currentDelay: `${delay}ms`,
+        isLate: delay > 0 
+      });
+    } else {
+      console.log("⏸️ タイマー待機中 (startAt が未設定)");
+    }
     setTimeLeft(duration);
     hasCalledTimeUp.current = false;
     lastUpdateRef.current = Date.now();
@@ -20,7 +32,6 @@ const GameTimer = ({ duration = 300, onTimeUp, startAt }) => {
   useEffect(() => {
     // startAt が null の場合は動作しない
     if (startAt == null) {
-      console.log("⏸️ タイマー待機中 (startAt が未設定)");
       return;
     }
 
