@@ -22,7 +22,7 @@ const GameTimer = ({ duration = 300, onTimeUp, startAt }) => {
         isLate: delay > 0 
       });
     } else {
-      console.log("⏸️ タイマー待機中 (startAt が未設定)");
+      console.log("⏸️ タイマー待機中 (startAt が未設定です)");
     }
     setTimeLeft(duration);
     hasCalledTimeUp.current = false;

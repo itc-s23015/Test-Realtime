@@ -789,6 +789,33 @@ ch.subscribe("stock-update", (msg) => {
     </div>
   </header>
 
+  { /*＝＝＝＝＝＝＝ スタートカウントダウン ＝＝＝＝＝＝＝ */}
+   {showStartCD && countdownStartAt && (
+          <StartCountdown
+            startAt={countdownStartAt}
+            seconds={cdSeconds}
+            onFinish={() => {
+              setShowStartCD(false);
+            
+            if (!gameStartAt) {
+                const now = Date.now();
+                setGameStartAt(now);
+              }
+            }}
+          />
+        )}
+
+        {error && (
+          <div
+            className={`${styles.errorBar} ${
+              error.startsWith("✅") ? styles.errorBarSuccess : styles.errorBarError
+            }`}
+          >
+            {error.startsWith("✅") ? "" : "⚠️ "}
+            {error}
+          </div>
+        )}
+
   {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
   <div className={styles.mainGrid}>
 
