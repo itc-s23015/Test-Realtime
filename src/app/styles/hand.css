@@ -1,0 +1,35 @@
+.handPanel {
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.cardItem {
+  min-width: 150px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s;
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.cardItem:hover {
+  transform: translateY(-4px);
+}
+
+.cardName {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.cardDesc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}

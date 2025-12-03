@@ -14,7 +14,7 @@ const Hand = ({
   hand = [],
   meAtb = 0,
   onPlay,
-  maxHand = 8,
+  maxHand = 7,
 }) => {
   // ATBが100未満の場合は使用不可（将来実装）
   const disabledByATB = (c) => {

@@ -25,7 +25,7 @@ const INITIAL_MONEY = 100000;
 const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000; // 10秒ごとの自動更新
 const GAME_DURATION = 180;
-const MAX_HAND_SIZE = 8;
+const MAX_HAND_SIZE = 7;
 const CARD_DRAW_INTERVAL = 10000;
 
 // ダミー株価データ生成
@@ -84,8 +84,8 @@ export default function Game() {
   const [gameStartAt, setGameStartAt] = useState(null);
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
   //新しく追加
   const resultsMapRef = useRef(new Map());
@@ -411,11 +411,6 @@ ch.subscribe("stock-update", (msg) => {
   const { stockData: next, changeAmount, isAuto } = msg.data || {};
   if (!next) return;
   setStockData(next);
-
-  // ここでログを出す（自動更新か手動操作かでアイコンを変えてもOK）
-  const line = changeAmount > 0
-    ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "" : "（手動）"}`
-    : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "" : "（手動）"}`;
 
   addLog(line);
 });
@@ -785,19 +780,20 @@ ch.subscribe("stock-update", (msg) => {
   });
   
   return (
-    <div className={styles.container}>
-      <div className={styles.innerContainer}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>株価ゲーム 📈</h1>
-          <span className={styles.statusBadge} style={{ backgroundColor: statusBadge.color }}>
-            {statusBadge.text}
-          </span>
-          <div className={styles.timerWrapper}>
-            <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
-          </div>
-        </div>
 
-        {showStartCD && countdownStartAt && (
+  <div className={styles.container}>
+
+  {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
+  <header className={styles.header}>
+    <h1 className={styles.title}>株価ゲーム 📈</h1>
+    <span className={styles.statusBadge} style={{ backgroundColor: statusBadge.color }}>
+      {statusBadge.text}
+    </span>
+    <div className={styles.timerWrapper}>
+      <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
+    </div>
+  </header>
+   {showStartCD && countdownStartAt && (
           <StartCountdown
             startAt={countdownStartAt}
             seconds={cdSeconds}
@@ -823,21 +819,55 @@ ch.subscribe("stock-update", (msg) => {
           </div>
         )}
 
-        <div className={styles.contentGrid}>
-          <section className={styles.leftCol}>
-            {roomNumber && money !== null && holding !== null && (
-              <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
-            )}
-            {stockData.length > 0 && <StockChart stockData={stockData} />}
-          </section>
+  {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
+  <div className={styles.mainGrid}>
 
-          <div className={styles.rightCol}>
-            <div className={styles.tradePanelBox}>
-              <TradingPanel currentPrice={currentPrice} money={money} holding={holding} onTrade={handleTrade} />
-            </div>
-          </div>
-        </div>
+    {/* 左カラム（上：ATB+手札、下：チャート） */}
+    <div className={styles.leftCol}>
+
+      {/* 左上：ATB + 手札 */}
+      <div className={styles.topLeftBox}>
+        <ATBBar value={atb} max={100} label="ゲージ" />
+        <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} />
       </div>
+
+      {/* 左下：チャート */}
+      <div className={styles.chartWrapper}>
+        <StockChart stockData={stockData} />
+      </div>
+    </div>
+
+  {/* 右カラム（上：取引パネル、下：プレイヤー情報＋ユーザー一覧） */}
+<div className={styles.rightCol}>
+
+  {/* 右上：取引パネル（伸縮） */}
+  <div className={styles.tradePanelBox}>
+    <TradingPanel
+      currentPrice={currentPrice}
+      money={money}
+      holding={holding}
+      onTrade={handleTrade}
+    />
+  </div>
+
+  {/* 右下：プレイヤー情報 ＋ ユーザー一覧 */}
+  <div className={styles.bottomRightBox}>
+    <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
+
+    <div className={styles.userListBox}>
+      <RightUserList
+        meId={clientId}
+        players={allPlayers}
+        selectedTarget={selectedTarget}
+        onSelect={handleTargetSelect}
+      />
+    </div>
+  </div>
+
+</div>
+
+  </div>
+      
 
       <SideBar
         side="left"
@@ -857,20 +887,8 @@ ch.subscribe("stock-update", (msg) => {
       >
         <Log log={logs} />
         <div className={styles.userListTitle}>ユーザー一覧</div>
-        <RightUserList
-          meId={clientId}
-          players={allPlayers}
-          selectedTarget={selectedTarget}
-          onSelect={handleTargetSelect}
-        />
-      </SideBar>
 
-      {!isRightSidebarOpen && (
-        <div className={styles.rightSidebarSlot}>
-          <ATBBar value={atb} max={100} label="ゲージ" />
-          <Hand hand={hand} onPlay={handlePlayCard} maxHand={8} />
-        </div>
-      )}
+      </SideBar>
 
       <ResultModal
         open={isGameOver}

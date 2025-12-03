@@ -1,0 +1,23 @@
+.homeWrap {
+  max-width: 720px;
+  margin: 40px auto;
+  padding: 20px;
+  color: var(--text);
+}
+
+.homeTitle {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.homeInput {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  color: var(--text);
+}

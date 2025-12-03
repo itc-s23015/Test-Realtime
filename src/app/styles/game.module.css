@@ -1,36 +1,27 @@
-/* ====== レイアウト ====== */
+/* 全体 */
 .container {
   width: 100%;
-  min-height: 100vh;
-  background-color: #f9fafb;
-  padding: 32px;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
 }
 
-.innerContainer {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* ====== ヘッダー ====== */
+/* 上段：ヘッダー */
 .header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--panel-border);
+  flex-shrink: 0;
 }
 
 .title {
   margin: 0;
-  font-size: 28px;
-  font-weight: bold;
-  color: #111827;
-}
-
-.statusBadge {
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+  font-size: 24px;
   font-weight: bold;
 }
 
@@ -38,166 +29,68 @@
   margin-left: auto;
 }
 
-/* ====== エラーバー ====== */
-.errorBar {
-  margin-bottom: 20px;
-  padding: 16px;
-  border-radius: 12px;
-  text-align: center;
-  font-weight: bold;
-  border: 2px solid;
-}
-
-.errorBarSuccess {
-  color: #16a34a;
-  background-color: #dcfce7;
-  border-color: #16a34a;
-}
-
-.errorBarError {
-  color: #dc2626;
-  background-color: #fee2e2;
-  border-color: #dc2626;
-}
-
-/* ====== ユーザー一覧 ====== */
-.userListTitle {
-  font-weight: bold;
-  margin-top: 20px;
-}
-
-.userListItem {
-  padding: 8px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* ====== メモ欄 ====== */
-.memoContent {
-  font-size: 14px;
-  color: #374151;
-  line-height: 1.7;
-}
-
-/* 2カラム骨格：左は可変、右は固定幅 */
-.contentGrid {
+/* 中段：2カラム */
+.mainGrid {
+  flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px; /* 右幅は好みで調整 */
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: 16px;
-  align-items: start;
-  margin-top: 16px;
+  padding: 12px 24px;
+  overflow: hidden;
 }
 
+/* 左カラム（上：ATB+手札、下：チャート） */
 .leftCol {
-  display: grid;
-  gap: 16px;
-  min-width: 0; /* チャートのはみ出し対策 */
-}
-
-.rightCol {
-  min-width: 0;
-}/* サイドバーを閉じたときの「空白」エリアに手札をドック表示 */
-.rightSidebarSlot {
-  position: fixed;
-  right: 0;
-  top: 96px;               /* ヘッダー+タイマー分。70〜120pxで調整 */
-  width: 320px;            /* 右サイドバーの幅に合わせる */
-  max-height: calc(100vh - 120px);
-  overflow: auto;
-  padding: 8px;
-  border-left: 1px solid #e5e7eb;
-  background: rgba(255,255,255,0.6);  /* ダークなら #0f0f0fcc など */
-  backdrop-filter: blur(6px);
-  z-index: 20;             /* 本体より上、サイドバーより下にしたいなら 20〜30 */
-}
-
-/* サイドバーを開いたときにはそもそも非表示（JSXで制御済み） */
-
-
-/* 右パネルをスクロール固定に */
-.stickyPanel {
-  position: sticky;
-  top: 96px; /* ヘッダーやタイマーの高さに合わせて調整 */
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* 手札を右カラム内で独立スクロール可能に */
-.handScroll {
-  max-height: 360px;  /* 端末に合わせて調整 */
-  overflow: auto;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+/* 左上：ATB+手札（固定高さ） */
+.topLeftBox {
+  flex-shrink: 0;
+  padding: 12px;
   border-radius: 12px;
-  padding: 8px;
-}
-
-/* スマホ等では1カラムにフォールバック */
-@media (max-width: 1024px) {
-  .contentGrid {
-    grid-template-columns: 1fr;
-  }
-  .stickyPanel {
-    position: static;
-  }
-}
-
-/* サイドバーを閉じたときの「空白」エリアに手札をドック表示 */
-.rightSidebarSlot {
-  position: fixed;
-  right: 0;
-  top: 130px;               /* ヘッダー+タイマー分。70〜120pxで調整 */
-  width: 320px;            /* 右サイドバーの幅に合わせる */
-  max-height: calc(100vh - 120px);
-  overflow: auto;
-  padding: 8px;
-  border-left: 1px solid #e5e7eb;
-  background: rgba(255,255,255,0.6);  /* ダークなら #0f0f0fcc など */
-  backdrop-filter: blur(6px);
-  z-index: 20;             /* 本体より上、サイドバーより下にしたいなら 20〜30 */
-}
-
-/* サイドバーを開いたときにはそもそも非表示（JSXで制御済み） */
-
-/* 2カラムの親 */
-.contentGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px; /* 右カラム幅はお好みで */
-  gap: 16px;
-  align-items: start;
-}
-
-/* 右カラム：ヘッダーぶん差し引いて“縦いっぱい”に */
-.rightCol {
-  position: sticky;           /* スクロールしても右は見える */
-  top: 96px;                  /* ヘッダー+タイマーの高さに合わせて調整 */
-  height: calc(95vh - 96px - 16px); /* 画面高 - 上の余白 - 下の余白 */
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* 取引パネルを上下に伸ばす“器” */
-.tradePanelBox {
-  flex: 1;                    /* ← これで縦に伸びる本体 */
-  display: flex;              /* 中のパネルがheight:100%になるように */
-  min-height: 0;              /* 子のoverflow計算を正しくするため */
-  border: 1px solid #e5e7eb;  /* “枠”が上下まで伸びる */
-  border-radius: 12px;
-  overflow: auto;             /* 中身が溢れたら内側スクロール */
-  background: #fff;           /* ダークなら#0f0f0f等に */
-  padding: 12px;              /* 内側余白はお好みで */
+/* 左下：チャート（伸縮） */
+.chartWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-/* スマホ等では1カラムにフォールバック */
-@media (max-width: 1024px) {
-  .contentGrid {
-    grid-template-columns: 1fr;
-  }
-  .rightCol {
-    position: static;
-    height: auto;
-  }
-  .tradePanelBox {
-    max-height: none;
-  }
+/* 右カラム（上：取引、下：プレイヤー情報） */
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 右上：取引パネル（伸縮） */
+.tradePanelBox {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  padding: 12px;
+  overflow: auto;
+}
+
+/* 右下：プレイヤー情報（固定） */
+.bottomRightBox {
+  flex-shrink: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
 }

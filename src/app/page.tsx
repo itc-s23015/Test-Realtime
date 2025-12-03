@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "../app/components/Logo";
+import ThemeToggle from "./components/ThemeToggle";
 
 
 export default function HomePage() {
@@ -35,7 +36,11 @@ export default function HomePage() {
 
   return (
     
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+    <main className="pageContainer"style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+
+  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+    <ThemeToggle />
+  </div>
           <header style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
       <Logo variant="full" size={28} />
       {/* ダーク背景なら <Logo variant="full" size={28} dark /> */}

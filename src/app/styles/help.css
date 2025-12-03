@@ -1,0 +1,25 @@
+.wrap {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--panel-border);
+}
+.tab {
+  text-align: center;
+  padding: 10px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.tab:hover { background: var(--card-bg); }
+.active { background: var(--panel-bg); color: var(--text); }
+
+.badgeRarityN { background: var(--rarity-n-bg); color: var(--rarity-n-text); }
+.badgeRarityR { background: var(--rarity-r-bg); color: var(--rarity-r-text); }
+.badgeRaritySR { background: var(--rarity-sr-bg); color: var(--rarity-sr-text); }
