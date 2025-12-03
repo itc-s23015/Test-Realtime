@@ -408,7 +408,12 @@ ch.subscribe("stock-update", (msg) => {
   if (!next) return;
   setStockData(next);
 
-  addLog(line);
+   if (changeAmount) {
+    const line = changeAmount > 0
+      ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
+      : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
+    addLog(line);
+  }
 });
 
       ch.subscribe("card-draw-tick", (msg) => {
