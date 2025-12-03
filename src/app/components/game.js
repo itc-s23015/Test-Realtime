@@ -326,8 +326,17 @@ export default function Game() {
 
       await ch.attach();
 
-      const initialName =
-        (typeof window !== "undefined" && sessionStorage.getItem("playerName")) || clientId;
+      ch.subscribe("start-countdown", (msg) => {
+        const { startAt, seconds = 3 } = msg.data || {};
+        if (!Number.isFinite(startAt)) return;
+
+        setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
+        setShowStartCD(true);
+
+        const gameStart = startAt + seconds * 1000;
+        setGameStartAt(gameStart);
+      });
 
       await ch.presence.enter({
         name: displayName,
@@ -355,32 +364,25 @@ export default function Game() {
       await refreshPlayers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
-      ch.subscribe("start-countdown", (msg) => {
-        const { startAt, seconds = 3 } = msg.data || {};
-        if (!Number.isFinite(startAt)) return;
-
-        setCountdownStartAt(startAt);
-        setCdSeconds(seconds);
-        setShowStartCD(true);
-
-        const gameStart = startAt + seconds * 1000;
-        setGameStartAt(gameStart);
-      });
-
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
       isHostRef.current = isHost;
 
       if (isHost) {
+
+        setTimeout(async () => {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
-        await ch.publish("start-countdown", { startAt, seconds }); //修正
+
+        await ch.publish("start-countdown", { startAt, seconds });
 
         setCountdownStartAt(startAt);
         setCdSeconds(seconds);
         setShowStartCD(true);
         setGameStartAt(startAt + seconds * 1000);
+
+        await ch.publish("start-countdown", { startAt, seconds }); 
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
@@ -401,7 +403,8 @@ export default function Game() {
             }
           }, CARD_DRAW_INTERVAL);
         }
-      }
+      }, 3000);
+    }
 
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
@@ -412,7 +415,12 @@ ch.subscribe("stock-update", (msg) => {
   if (!next) return;
   setStockData(next);
 
-  addLog(line);
+  if (changeAmount) {
+    const line = changeAmount > 0
+      ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "" : "（手動）"}`
+      : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "" : "（手動）"}`;
+    addLog(line);
+  }
 });
 
       ch.subscribe("card-draw-tick", (msg) => {
