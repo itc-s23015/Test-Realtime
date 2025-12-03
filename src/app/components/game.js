@@ -356,27 +356,31 @@ export default function Game() {
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
       ch.subscribe("start-countdown", (msg) => {
-        const { startAt, seconds = 5 } = msg.data || {};
+        const { startAt, seconds = 3 } = msg.data || {};
         if (!Number.isFinite(startAt)) return;
 
-        //新規追加
-        setGameStartAt(startAt + seconds * 1000);
-
-        setCdSeconds(seconds);
         setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
         setShowStartCD(true);
+
+        const gameStart = startAt + seconds * 1000;
+        setGameStartAt(gameStart);
       });
 
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
-      //新規追加
       isHostRef.current = isHost;
 
       if (isHost) {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
         await ch.publish("start-countdown", { startAt, seconds }); //修正
+
+        setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
+        setShowStartCD(true);
+        setGameStartAt(startAt + seconds * 1000);
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
@@ -799,6 +803,11 @@ ch.subscribe("stock-update", (msg) => {
             seconds={cdSeconds}
             onFinish={() => {
               setShowStartCD(false);
+            
+            if (!gameStartAt) {
+                const now = Date.now();
+                setGameStartAt(now);
+              }
             }}
           />
         )}
