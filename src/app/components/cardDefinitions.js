@@ -139,17 +139,16 @@ export const CARD_DEFINITIONS = {
         cooldownMs: 3000,
     },
     [CARD_TYPES.REMOVE_TWO]: {
-  id: CARD_TYPES.REMOVE_TWO,
-  name: '2枚削除',
-  description: '相手の手札を2枚ランダムに削除する',
-  emoji: '🗑️',
-  rarity: RARITY.RARE,
-  needsTarget: true,
-  effectAmount: 2,         // 削除枚数
-  atbCost: 45,             // DRAW_TWO より少し重い
-  cooldownMs: 5000,        // 少し重めでバランス調整
-},
-
+        id: CARD_TYPES.REMOVE_TWO,
+        name: '2枚削除',
+        description: '相手の手札を2枚ランダムに削除する',
+        emoji: '🗑️',
+        rarity: RARITY.RARE,
+        needsTarget: true,
+        effectAmount: 2,         // 削除枚数
+        atbCost: 45,             // DRAW_TWO より少し重い
+        cooldownMs: 5000,        // 少し重めでバランス調整
+    },
      [CARD_TYPES.INCREASE_MONEY_SMALL]: {
         id: CARD_TYPES.INCREASE_MONEY_SMALL,
         name: '資金増加(小)',
@@ -296,6 +295,7 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
     let log = '';
     let drawCount = 0;
     let chartChange = 0;
+    let removeCount = 0;
 
     // ターゲットの決定
     const victimId = card.needsTarget ? targetId : playerId;
@@ -392,6 +392,20 @@ export function executeCardEffect(cardType, gameState, playerId, targetId = null
                 gameState: newState,
                 needsSync: false,
                 drawCount,
+                log,
+            };
+
+        case CARD_TYPES.REMOVE_TWO:
+            // 相手の手札を2枚ランダムに削除
+            removeCount = card.effectAmount ?? 2;
+            log = `🗑️ ${self.name || playerId} → ${victim.name || victimId} の手札を ${removeCount} 枚ランダムに削除`;
+           return {
+                success: true,
+                message: `${card.name} 成功！ ${victim.name}の手札を${removeCount}枚ランダムに削除します！`,
+                gameState: newState,
+                needsSync: false,
+                removeCount,
+                targetId: victimId,
                 log,
             };
 

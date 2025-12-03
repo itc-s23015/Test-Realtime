@@ -425,13 +425,72 @@ ch.subscribe("stock-update", (msg) => {
       });
 
       ch.subscribe("card-used", (msg) => {
-        const { cardId, playerId, targetId } = msg.data || {};
-        if (!cardId || !playerId) return;
+        console.log("📥 card-used受信（全データ）:", JSON.stringify(msg.data));
 
-  const you = playerId === clientId ? "(あなた)" : "";
-  const cardName = CARD_DEFINITIONS[cardId]?.name || cardId;
-  const tail = targetId ? ` → 対象: ${targetId}` : "";
-  addLog(`🃏 ${playerId}${you} が ${cardName} を使用${tail}`);
+        const { cardId, playerId, targetId, removeCount } = msg.data || {};
+
+        console.log("📥 分解後:", { cardId, playerId, targetId, removeCount });
+
+        if (!cardId || !playerId) {
+          console.log("❌ carrdId または playerIdが不足");
+          return;
+        }
+
+        const you = playerId === clientId ? "(あなた)" : "";
+        const cardName = CARD_DEFINITIONS[cardId]?.name || cardId;
+        const tail = targetId ? ` → 対象: ${allPlayers[targetId]?.name || targetId}` : "";
+        const playerName = allPlayers[playerId]?.name || playerId;
+        const targetName = targetId ? allPlayers[targetId]?.name || targetId : "";
+  
+        // ログ出力
+        if (targetId) {
+          addLog(`🃏 ${playerName}${you} が ${cardName} を使用 → ${targetName}`);
+        } else {
+          addLog(`🃏 ${playerName}${you} が ${cardName} を使用`);
+        }
+
+        // delete card
+        if (removeCount && targetId === clientId) {
+          console.log(`🗑️ 手札をランダムに ${removeCount} 枚削除`);
+          console.log(`📋 削除前の手札:`, handRef.current.map(c => CARD_DEFINITIONS[c.id]?.name));
+
+          setHand((currentHand) => {
+            console.log(`🗑️ setHand実行 - 現在の手札枚数: ${currentHand.length}`);
+
+            if (currentHand.length === 0) {
+              console.log("⚠️ 手札が空です");
+              addLog(`🗑️ 手札が空のため削除できませんでした`);
+              return currentHand;
+            }
+
+            const toRemove = Math.min(removeCount, currentHand.length);
+            const newHand = [...currentHand];
+
+            console.log(`🗑️ ${toRemove}枚を削除します`);
+
+            for (let i = 0; i < toRemove; i++) {
+              if (newHand.length === 0) break;
+              const randomIndex = Math.floor(Math.random() * newHand.length);
+              const removed = newHand.splice(randomIndex, 1)[0];
+        console.log(`🗑️ ${i + 1}枚目削除: インデックス${randomIndex} - ${CARD_DEFINITIONS[removed.id]?.name}`);
+      }
+      
+      console.log(`✅ 削除完了: ${currentHand.length}枚 → ${newHand.length}枚`);
+      console.log(`📋 削除後の手札:`, newHand.map(c => CARD_DEFINITIONS[c.id]?.name));
+      
+      addLog(`🗑️ 手札が ${toRemove} 枚削除されました`);
+      
+      return newHand;
+    });
+    
+    setError(`⚔️ ${cardName} の効果を受けました！手札が${removeCount}枚削除されました`);
+    setTimeout(() => setError(""), 3000);
+    
+    console.log("🗑️ 手札削除処理完了、return");
+    return; // ここで処理終了
+  }
+
+  console.log("ℹ️ 手札削除の条件に該当せず、通常処理へ");
 
         if (targetId === clientId) {
           setAllPlayers((currentPlayers) => {
@@ -606,6 +665,7 @@ ch.subscribe("stock-update", (msg) => {
     }
 
     const targetId = selectedTarget || others[0] || null;
+    let sim;
 
     try {
       const snapshot = {
@@ -632,7 +692,7 @@ ch.subscribe("stock-update", (msg) => {
         },
       };
 
-      const sim = executeCardEffect(card.id, snapshot, clientId, targetId);
+      sim = executeCardEffect(card.id, snapshot, clientId, targetId);
 
       if (!sim.success) {
         setError("❌ カードを使えませんでした");
@@ -677,6 +737,7 @@ ch.subscribe("stock-update", (msg) => {
         addLog(`📊 株価が ${Math.abs(sim.chartChange)} 円${direction}（カード効果）`);
       }
 
+      // 自分の状態を更新
       if (sim.needsSync && sim.gameState?.players?.[clientId]) {
         const playerData = sim.gameState.players[clientId];
         const newHolding = playerData.holding;
@@ -717,6 +778,7 @@ ch.subscribe("stock-update", (msg) => {
         }
       }
 
+      // カードドロー処理
       if (sim.drawCount && sim.drawCount > 0) {
         const rng = rngRef.current || Math.random;
         const adds = Array.from({ length: sim.drawCount }, () => drawRandomCard({ rng })).map((c) => ({ id: c.id }));
@@ -737,12 +799,20 @@ ch.subscribe("stock-update", (msg) => {
     try {
       // 自分に対する効果のカードは相手に送信しない
       if (!isSelfTargetCard) {
-        await chRef.current.publish("card-used", {
+        // await chRef.current.publish("card-used", {
+        const payload = {
           cardId: card.id,
           playerId: clientId,
           targetId,
           timestamp: Date.now(),
-        });
+        };
+
+        if (sim?.removeCount) {
+          payload.removeCount = sim.removeCount;
+        }
+
+        console.log("📡 カード使用イベント送信:", payload)
+        await chRef.current.publish("card-used", payload);
       }
 
       setError(`✅ ${cardDef?.name || "カード"} を使用しました！`);
@@ -780,7 +850,7 @@ ch.subscribe("stock-update", (msg) => {
     intervalMs: 1000,
   });
   
-  return (
+return (
 <div className={styles.container}>
 
   {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
