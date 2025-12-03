@@ -376,9 +376,15 @@ export default function Game() {
       isHostRef.current = isHost;
 
       if (isHost) {
+        setTimeout(async () => {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
         await ch.publish("start-countdown", { startAt, seconds }); //修正
+
+        setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
+        setShowStartCD(true);
+        setGameStartAt(startAt + seconds * 1000);
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
@@ -399,7 +405,8 @@ export default function Game() {
             }
           }, CARD_DRAW_INTERVAL);
         }
-      }
+      }, 1000);
+    }
 
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
