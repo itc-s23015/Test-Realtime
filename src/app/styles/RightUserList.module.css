@@ -1,0 +1,58 @@
+/* =====================
+   プレイヤーカードリスト共通
+===================== */
+
+.userList {
+  display: grid;
+  gap: 10px;
+}
+
+/* =====================
+   各プレイヤーカード
+===================== */
+.userCard {
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--text);
+}
+
+/* ホバー時（選択前） */
+.userCard:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-border);
+}
+
+/* 選択状態 */
+.userCardSelected {
+  border: 2px solid var(--accent);
+  background: var(--accent-bg);
+}
+
+/* =====================
+   内部のテキスト
+===================== */
+.userName {
+  font-weight: 700;
+}
+
+.userRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.userStats {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.money {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
