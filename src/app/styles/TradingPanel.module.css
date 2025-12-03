@@ -1,97 +1,90 @@
-/* ===========================================
-   Trading Panel（Light / Dark 完全対応）
-=========================================== */
+/* =========================================
+   TradingPanel（Light/Darkテーマ完全対応）
+========================================= */
+
 .container {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 6px var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
   color: var(--text);
+  box-shadow: 0 4px 6px var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden; /* ← スクロール禁止 */
 }
 
-/* ======================
-   Header
-====================== */
+/* ====== header ====== */
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 12px;
-  margin-bottom: 16px;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--panel-border);
+  padding-bottom: 12px;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
   color: var(--text);
+  margin: 0;
 }
 
 .currentPrice {
   font-size: 18px;
-  font-weight: 700;
-  color: var(--accent-blue);
+  font-weight: bold;
+  color: var(--accent);
 }
 
-/* ======================
-   BUY / SELL 切替
-====================== */
+/* ====== BUY/SELL セレクタ ====== */
 .tradeTypeSelector {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
 }
 
 .typeButton {
   flex: 1;
-  padding: 10px 16px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 600;
 
-  border: 1px solid var(--panel-border);
-  background: var(--card-bg);
-  color: var(--text-secondary);
-  transition: 0.2s ease;
+  border: 2px solid var(--panel-border);
+  background: var(--input-bg);
+  color: var(--text-sub);
+  transition: all 0.2s;
 }
 
 .typeButton:hover {
-  background: var(--bg-hover);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .typeButtonActive {
-  border-color: var(--accent-blue);
-  background: var(--btn-blue-bg);
-  color: var(--accent-blue);
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
-/* ======================
-   Amount Section
-====================== */
-.amountSection {
-  margin-bottom: 20px;
-}
+/* ====== 数量入力欄 ====== */
+.amountSection {}
 
 .label {
   display: block;
-  margin-bottom: 8px;
   font-size: 14px;
-  font-weight: 700;
-  color: var(--text-secondary);
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 12px;
 }
 
-/* 数量コントロール */
 .amountControls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -99,53 +92,48 @@
   width: 40px;
   height: 40px;
   font-size: 20px;
-  font-weight: 700;
-
+  font-weight: bold;
   border-radius: 8px;
-  cursor: pointer;
 
-  border: 1px solid var(--panel-border);
-  background: var(--card-bg);
+  border: 2px solid var(--panel-border);
+  background: var(--input-bg);
   color: var(--text);
-  transition: 0.2s ease;
+
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .controlButton:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
 }
 
 .controlButton:disabled {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* 数量入力欄 */
 .amountInput {
   flex: 1;
-  padding: 8px 10px;
-  text-align: center;
+  padding: 10px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: bold;
+  text-align: center;
 
+  border: 2px solid var(--panel-border);
   border-radius: 8px;
-  outline: none;
 
-  border: 1px solid var(--panel-border);
-  background: var(--card-bg);
+  background: var(--input-bg);
   color: var(--text);
-
-  transition: border-color 0.2s;
+  outline: none;
 }
 
 .amountInput:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--accent);
 }
 
-/* ======================
-   クイック選択
-====================== */
+/* ====== 数量クイックボタン ====== */
 .quickSelect {
   display: flex;
   gap: 8px;
@@ -153,112 +141,103 @@
 
 .quickButton {
   flex: 1;
-  padding: 6px 10px;
-  font-size: 13px;
-  font-weight: 600;
-
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 14px;
 
   border: 1px solid var(--panel-border);
-  background: var(--card-bg);
-  color: var(--text-secondary);
+  border-radius: 6px;
 
-  transition: 0.2s ease;
+  background: var(--input-bg);
+  color: var(--text-sub);
+
+  cursor: pointer;
+  transition: 0.2s;
 }
 
 .quickButton:hover:not(:disabled) {
-  border-color: var(--accent-blue);
-  color: var(--accent-blue);
-  background: var(--bg-hover);
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .quickButton:disabled {
   opacity: 0.3;
+  cursor: not-allowed;
 }
 
-/* ======================
-   Summary
-====================== */
+/* ====== 合計情報 ====== */
 .summary {
-  background: var(--card-bg);
+  background: var(--bg-secondary);
   border: 1px solid var(--panel-border);
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 16px;
+  border-radius: 8px;
+  padding: 16px;
 }
 
 .summaryRow {
   display: flex;
   justify-content: space-between;
+  margin-bottom: 8px;
   font-size: 14px;
-  margin-bottom: 6px;
-  color: var(--text-secondary);
+  color: var(--text-sub);
 }
-
 .summaryRow:last-child {
   margin-bottom: 0;
 }
 
 .summaryValue {
-  font-weight: 700;
+  font-weight: bold;
   font-size: 16px;
   color: var(--text);
 }
 
 .insufficient {
-  color: var(--accent-red);
+  color: var(--danger);
 }
 
-/* ======================
-   Trade Buttons
-====================== */
+/* ====== 実行ボタン（ライト黒 / ダーク白） ====== */
 .tradeButton {
   width: 100%;
-  padding: 12px 18px;
-  border-radius: 8px;
+  padding: 14px 24px;
   font-size: 16px;
-  font-weight: 800;
-  color: #fff;
-  border: none;
+  font-weight: bold;
+
+  border-radius: 8px;
+  color: var(--trade-btn-text); /* ← Light:黒 / Dark:白 */
+
   cursor: pointer;
-  transition: 0.2s ease;
-  margin-bottom: 10px;
+  transition: all 0.2s;
+  margin-bottom: 12px;
+  border: none;
 }
 
-/* BUY */
 .buyButton {
-  background: var(--btn-green);
-}
-.buyButton:hover:not(:disabled) {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+  background: var(--success);
 }
 
-/* SELL */
-.sellButton {
-  background: var(--btn-red);
+.buyButton:hover:not(:disabled) {
+  background: var(--success-bg);
+  box-shadow: 0 4px 8px var(--shadow);
 }
+
+.sellButton {
+  background: var(--danger);
+}
+
 .sellButton:hover:not(:disabled) {
-  filter: brightness(1.1);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.3);
+  background: var(--danger-bg);
+  box-shadow: 0 4px 8px var(--shadow);
 }
 
 .tradeButton:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
-/* ======================
-   Limits
-====================== */
+/* ====== 最大数量 ====== */
 .limits {
   text-align: center;
-  font-size: 12px;
-  color: var(--text-secondary);
+  font-size: 13px;
+  color: var(--text-sub);
 }
 
 .limitText {

@@ -81,3 +81,29 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+
+:root {
+  /* ライト */
+  --panel-bg:#ffffff;
+  --panel-border:#e5e7eb;
+  --hover-bg:#f3f4f6;
+  --hover-border:#cbd5e1;
+  
+  --accent:#3b82f6;
+  --accent-bg:#e0edff;
+
+  --text:#111827;
+}
+
+[data-theme="dark"] {
+  --panel-bg:#1a1a1a;
+  --panel-border:#333;
+
+  --hover-bg:#222;
+  --hover-border:#444;
+
+  --accent:#60a5fa;
+  --accent-bg:#1e293b;
+
+  --text:#f3f4f6;
+}

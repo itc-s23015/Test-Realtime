@@ -326,17 +326,8 @@ export default function Game() {
 
       await ch.attach();
 
-      ch.subscribe("start-countdown", (msg) => {
-        const { startAt, seconds = 3 } = msg.data || {};
-        if (!Number.isFinite(startAt)) return;
-
-        setCountdownStartAt(startAt);
-        setCdSeconds(seconds);
-        setShowStartCD(true);
-
-        const gameStart = startAt + seconds * 1000;
-        setGameStartAt(gameStart);
-      });
+      const initialName =
+        (typeof window !== "undefined" && sessionStorage.getItem("playerName")) || clientId;
 
       await ch.presence.enter({
         name: displayName,
@@ -364,25 +355,28 @@ export default function Game() {
       await refreshPlayers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
+      ch.subscribe("start-countdown", (msg) => {
+        const { startAt, seconds = 5 } = msg.data || {};
+        if (!Number.isFinite(startAt)) return;
+
+        //新規追加
+        setGameStartAt(startAt + seconds * 1000);
+
+        setCdSeconds(seconds);
+        setCountdownStartAt(startAt);
+        setShowStartCD(true);
+      });
+
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
+      //新規追加
       isHostRef.current = isHost;
 
       if (isHost) {
-
-        setTimeout(async () => {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
-
-        await ch.publish("start-countdown", { startAt, seconds });
-
-        setCountdownStartAt(startAt);
-        setCdSeconds(seconds);
-        setShowStartCD(true);
-        setGameStartAt(startAt + seconds * 1000);
-
-        await ch.publish("start-countdown", { startAt, seconds }); 
+        await ch.publish("start-countdown", { startAt, seconds }); //修正
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
@@ -403,8 +397,7 @@ export default function Game() {
             }
           }, CARD_DRAW_INTERVAL);
         }
-      }, 3000);
-    }
+      }
 
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
@@ -415,12 +408,7 @@ ch.subscribe("stock-update", (msg) => {
   if (!next) return;
   setStockData(next);
 
-  if (changeAmount) {
-    const line = changeAmount > 0
-      ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "" : "（手動）"}`
-      : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "" : "（手動）"}`;
-    addLog(line);
-  }
+  addLog(line);
 });
 
       ch.subscribe("card-draw-tick", (msg) => {
@@ -788,8 +776,7 @@ ch.subscribe("stock-update", (msg) => {
   });
   
   return (
-
-  <div className={styles.container}>
+<div className={styles.container}>
 
   {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
   <header className={styles.header}>
@@ -801,6 +788,7 @@ ch.subscribe("stock-update", (msg) => {
       <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
     </div>
   </header>
+
   { /*＝＝＝＝＝＝＝ スタートカウントダウン ＝＝＝＝＝＝＝ */}
    {showStartCD && countdownStartAt && (
           <StartCountdown
@@ -838,6 +826,12 @@ ch.subscribe("stock-update", (msg) => {
       <div className={styles.topLeftBox}>
         <ATBBar value={atb} max={100} label="ゲージ" />
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} />
+         <RightUserList
+        meId={clientId}
+        players={allPlayers}
+        selectedTarget={selectedTarget}
+        onSelect={handleTargetSelect}
+      />
       </div>
 
       {/* 左下：チャート */}
@@ -857,20 +851,7 @@ ch.subscribe("stock-update", (msg) => {
       holding={holding}
       onTrade={handleTrade}
     />
-  </div>
-
-  {/* 右下：プレイヤー情報 ＋ ユーザー一覧 */}
-  <div className={styles.bottomRightBox}>
-    <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
-
-    <div className={styles.userListBox}>
-      <RightUserList
-        meId={clientId}
-        players={allPlayers}
-        selectedTarget={selectedTarget}
-        onSelect={handleTargetSelect}
-      />
-    </div>
+   <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
   </div>
 
 </div>
@@ -895,21 +876,15 @@ ch.subscribe("stock-update", (msg) => {
         title="ログ / ユーザー一覧"
       >
         <Log log={logs} />
-        <div className={styles.userListTitle}>ユーザー一覧</div>
-
       </SideBar>
 
-      <ResultModal
-        open={isGameOver}
-        results={results}
-        onClose={() => setIsGameOver(false)}
-        onRetry={() => {
-          window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
-        }}
-        onBack={() => {
-          window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
-        }}
-      />
+<ResultModal
+  open={isGameOver}
+  results={results}
+  onHome={() => { window.location.href = "/"; }}
+  onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
+/>
+
     </div>
   );
 }

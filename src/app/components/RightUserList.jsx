@@ -1,56 +1,48 @@
 "use client";
 
 import React from "react";
+import styles from "../styles/RightUserList.module.css";
 
 export default function RightUserList({
   meId,
-  players,                // { [id]: {name, money, holding} }
+  players,
   selectedTarget,
-  onSelect,               // (id|null) => void
+  onSelect,
 }) {
+  // 🔥 自分(meId)を除外
   const list = Object.entries(players)
+    .filter(([id]) => id !== meId)
     .map(([id, p]) => ({ id, ...p }))
     .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id));
 
   if (list.length === 0) {
-    return <div style={{ opacity: 0.6, fontSize: 12 }}>プレイヤーがいません</div>;
+    return <div style={{ opacity: 0.6, fontSize: 12 }}>他のプレイヤーがいません</div>;
   }
 
   const handleClick = (id) => {
-    // 自分は選択できないようにする
-    if (id === meId) return;
-
-    // もう一度クリックで解除（任意）
     onSelect(id === selectedTarget ? null : id);
   };
 
   return (
-    <div style={{ display: "grid", gap: 10 }}>
+    <div className={styles.userList}>
       {list.map((p) => {
-        const isMe  = p.id === meId;
         const isSel = selectedTarget === p.id;
+
         return (
           <div
             key={p.id}
+            className={`${styles.userCard} ${isSel ? styles.userCardSelected : ""}`}
             onClick={() => handleClick(p.id)}
-            style={{
-              padding: "14px 12px",              // 少し上下を広く
-              borderRadius: 12,
-              border: isSel ? "2px solid #3b82f6" : "1px solid #e5e7eb",
-              background: isSel ? "#e8f1ff" : "#fff",
-              cursor: isMe ? "not-allowed" : "pointer",  // 自分の場合はカーソルを変更
-              transition: "all .15s",
-            }}
           >
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <div style={{ fontWeight: 700 }}>
-                👤 {p.name || p.id}{isMe ? "（自分）" : ""}
-              </div>
-              <div style={{ marginLeft: "auto", fontSize: 12, opacity: 0.75 }}>
+            <div className={styles.userRow}>
+              <div className={styles.userName}>👤 {p.name}</div>
+
+              <div className={styles.userStats}>
                 保有株: {p.holding ?? 0} 株
               </div>
             </div>
-            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
+
+            <div className={styles.money}>
               所持金: ¥{Number(p.money ?? 0).toLocaleString()}
             </div>
           </div>
