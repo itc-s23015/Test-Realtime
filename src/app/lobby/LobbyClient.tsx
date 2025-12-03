@@ -62,6 +62,10 @@ export default function LobbyClient({ room }: Props) {
 // 新規追加
 const [nameConflict, setNameConflict] = useState(false);
 
+//　新規追加
+const [announcement, setAnnouncement] = useState("");
+const startedRef = useRef(false);
+
   const clientId = useMemo(() => {
     if (typeof window === "undefined") return "";
     let id = sessionStorage.getItem("clientUUID");
@@ -102,6 +106,15 @@ const [nameConflict, setNameConflict] = useState(false);
         if (msg.data?.type === "START") {
           router.push(`/game?room=${encodeURIComponent(room)}`);
         }
+      });
+
+      //新規追加
+      ch.subscribe("announce", (msg) => {
+        const text = msg.data?.text;
+        if (!text) return;
+
+        setAnnouncement(text);
+        setTimeout(() => setAnnouncement(""), 1200);
       });
     });
 
@@ -161,17 +174,37 @@ const [nameConflict, setNameConflict] = useState(false);
   const isHost = idsSorted[0] === clientId;
   const allReady = members.length >= 2 && members.every((m) => m.ready);
 
+  //useeffect変更
   useEffect(() => {
     if (!isHost) return;
     if (members.length < 2) return;
     if (!allReady) return;
+    if (startedRef.current) return;
+    startedRef.current = true;
 
-    chRef.current?.publish("event", {
-      type: "START",
-      by: clientId,
-      ts: Date.now(),
-    });
-  }, [isHost, allReady, members, clientId]);
+    (async () => {
+      //アナウンス
+      await chRef.current?.publish("announce", {
+        text: "対戦を開始します",
+        ts: Date.now(),
+      });
+
+      setTimeout(() => {
+        chRef.current?.publish("event", {
+          type: "START",
+          by: clientId,
+          ts: Date.now(),
+        });
+      }, 900);
+    })();
+  }, [isHost, allReady, members.length, clientId]);
+
+  //新規追加
+  useEffect(() => {
+    if (!allReady) startedRef.current = false;
+  }, [allReady]);
+
+    
 
   const toggleReady = async () => {
     // 新規追加 //
@@ -269,6 +302,23 @@ const [nameConflict, setNameConflict] = useState(false);
 
       </header>
 
+      {announcement && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            borderRadius: 10,
+            background: "#111827",
+            color: "#fff",
+            fontWeight: 800,
+            textAlign: "center",
+            border: "1px solid #000",
+          }}
+          >
+            {announcement}
+          </div>
+      )}
+
       <section style={{ background: "#ffffffff", border: "1px solid #000000ff", borderRadius: 12, padding: 12 }}>
         {/* 名前変更 */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -319,21 +369,6 @@ const [nameConflict, setNameConflict] = useState(false);
             {me?.ready ? "準備解除" : "準備OK"}
           </button>
 
-          <button 
-            onClick={start} 
-            disabled={!isHost || !allReady || nameConflict}
-            style={{
-              ...btn,
-              background: (!isHost || !allReady || nameConflict)
-                ? "#88a9e6ff"
-                : "#3b82f6",
-              cursor: (!isHost || !allReady || nameConflict)
-                ? "not-allowed"
-                : "pointer",
-            }}
-            >
-            開始（ホスト）
-          </button>
         </div>
       </section>
     </main>
