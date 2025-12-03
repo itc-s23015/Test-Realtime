@@ -356,27 +356,31 @@ export default function Game() {
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
       ch.subscribe("start-countdown", (msg) => {
-        const { startAt, seconds = 5 } = msg.data || {};
+        const { startAt, seconds = 3 } = msg.data || {};
         if (!Number.isFinite(startAt)) return;
 
-        //新規追加
-        setGameStartAt(startAt + seconds * 1000);
-
-        setCdSeconds(seconds);
         setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
         setShowStartCD(true);
+
+        const gameStart = startAt + seconds * 1000;
+        setGameStartAt(gameStart);
       });
 
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
-      //新規追加
       isHostRef.current = isHost;
 
       if (isHost) {
         const seconds = 3;
         const startAt = Date.now() + seconds * 1000;
         await ch.publish("start-countdown", { startAt, seconds }); //修正
+
+        setCountdownStartAt(startAt);
+        setCdSeconds(seconds);
+        setShowStartCD(true);
+        setGameStartAt(startAt + seconds * 1000);
 
         const seed = Date.now();
         const initialData = generateStockData(seed);
@@ -776,7 +780,8 @@ ch.subscribe("stock-update", (msg) => {
   });
   
   return (
-<div className={styles.container}>
+
+  <div className={styles.container}>
 
   {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
   <header className={styles.header}>
@@ -788,6 +793,31 @@ ch.subscribe("stock-update", (msg) => {
       <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
     </div>
   </header>
+   {showStartCD && countdownStartAt && (
+          <StartCountdown
+            startAt={countdownStartAt}
+            seconds={cdSeconds}
+            onFinish={() => {
+              setShowStartCD(false);
+            
+            if (!gameStartAt) {
+                const now = Date.now();
+                setGameStartAt(now);
+              }
+            }}
+          />
+        )}
+
+        {error && (
+          <div
+            className={`${styles.errorBar} ${
+              error.startsWith("✅") ? styles.errorBarSuccess : styles.errorBarError
+            }`}
+          >
+            {error.startsWith("✅") ? "" : "⚠️ "}
+            {error}
+          </div>
+        )}
 
   {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
   <div className={styles.mainGrid}>
