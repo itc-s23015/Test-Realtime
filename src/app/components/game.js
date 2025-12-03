@@ -801,6 +801,7 @@ ch.subscribe("stock-update", (msg) => {
       <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
     </div>
   </header>
+  { /*＝＝＝＝＝＝＝ スタートカウントダウン ＝＝＝＝＝＝＝ */}
    {showStartCD && countdownStartAt && (
           <StartCountdown
             startAt={countdownStartAt}
