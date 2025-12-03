@@ -1,48 +1,53 @@
-/* =====================
-   プレイヤーカードリスト共通
-===================== */
-
+/* 横並びスクロールエリア */
 .userList {
-  display: grid;
+  display: flex;
   gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+
+  /* スクロールバーを細く＆ライト/ダークに対応 */
+  scrollbar-width: thin;
 }
 
-/* =====================
-   各プレイヤーカード
-===================== */
+/* WebKit系（Chrome/Safari用） */
+.userList::-webkit-scrollbar {
+  height: 6px;
+}
+.userList::-webkit-scrollbar-thumb {
+  background: var(--hover-border);
+  border-radius: 4px;
+}
+
+/* カード（変更なしでOK） */
 .userCard {
+  min-width: 150px;       /* ← 横並びなので最低幅を与える */
   padding: 14px 12px;
   border-radius: 12px;
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all .15s ease;
   color: var(--text);
 }
 
-/* ホバー時（選択前） */
 .userCard:hover {
   background: var(--hover-bg);
   border-color: var(--hover-border);
 }
 
-/* 選択状態 */
 .userCardSelected {
-  border: 2px solid var(--accent);
+  border: 0px solid var(--accent);
   background: var(--accent-bg);
-}
-
-/* =====================
-   内部のテキスト
-===================== */
-.userName {
-  font-weight: 700;
 }
 
 .userRow {
   display: flex;
   align-items: baseline;
   gap: 8px;
+}
+
+.userName {
+  font-weight: 700;
 }
 
 .userStats {

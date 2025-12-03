@@ -799,6 +799,12 @@ ch.subscribe("stock-update", (msg) => {
       <div className={styles.topLeftBox}>
         <ATBBar value={atb} max={100} label="ゲージ" />
         <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} />
+         <RightUserList
+        meId={clientId}
+        players={allPlayers}
+        selectedTarget={selectedTarget}
+        onSelect={handleTargetSelect}
+      />
       </div>
 
       {/* 左下：チャート */}
@@ -818,20 +824,7 @@ ch.subscribe("stock-update", (msg) => {
       holding={holding}
       onTrade={handleTrade}
     />
-  </div>
-
-  {/* 右下：プレイヤー情報 ＋ ユーザー一覧 */}
-  <div className={styles.bottomRightBox}>
-    <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
-
-    <div className={styles.userListBox}>
-      <RightUserList
-        meId={clientId}
-        players={allPlayers}
-        selectedTarget={selectedTarget}
-        onSelect={handleTargetSelect}
-      />
-    </div>
+   <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
   </div>
 
 </div>
@@ -858,17 +851,13 @@ ch.subscribe("stock-update", (msg) => {
         <Log log={logs} />
       </SideBar>
 
-      <ResultModal
-        open={isGameOver}
-        results={results}
-        onClose={() => setIsGameOver(false)}
-        onRetry={() => {
-          window.location.href = `/game?room=${encodeURIComponent(roomU)}`;
-        }}
-        onBack={() => {
-          window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`;
-        }}
-      />
+<ResultModal
+  open={isGameOver}
+  results={results}
+  onHome={() => { window.location.href = "/"; }}
+  onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
+/>
+
     </div>
   );
 }

@@ -1,0 +1,146 @@
+/* ====== オーバーレイ（背景） ====== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: grid;
+  place-items: center;
+  z-index: 2000;
+}
+
+/* ====== モーダル本体 ====== */
+.modal {
+  width: min(720px, 90vw);
+  background: var(--panel-bg);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px var(--shadow);
+  animation: fadeIn .25s ease;
+}
+
+/* 見出し */
+.title {
+  margin: 0 0 12px 0;
+  font-size: 26px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--text-strong);
+}
+
+/* 勝者表示 */
+.winnerBox {
+  font-size: 18px;
+  padding: 12px;
+  background: var(--bg-accent);
+  color: var(--text-strong);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.winnerName {
+  font-weight: 900;
+  color: var(--rarity-r-text);
+}
+
+/* ====== テーブル ====== */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.table th {
+  font-size: 14px;
+  padding: 10px;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 14px;
+}
+
+.score {
+  font-weight: 800;
+  color: var(--rarity-sr-text);
+}
+
+/* ====== ボタン ====== */
+.homeBtn {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.homeBtn:hover {
+  filter: brightness(1.05);
+}
+
+/* 自動リダイレクト表示 */
+.countdown {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+/* フェードアニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ボタン並び */
+.buttonRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* ホームに戻る */
+.homeBtn {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 800;
+
+  background: var(--button-bg);
+  color: var(--button-text);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+/* ロビーに戻る（白ボタン風） */
+.lobbyBtn {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 800;
+
+  background: var(--bg);
+  color: var(--text-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.homeBtn:hover,
+.lobbyBtn:hover {
+  filter: brightness(1.05);
+}
