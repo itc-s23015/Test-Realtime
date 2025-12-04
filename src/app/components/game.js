@@ -417,12 +417,12 @@ ch.subscribe("stock-update", (msg) => {
   if (!next) return;
   setStockData(next);
 
-   if (changeAmount) {
-    const line = changeAmount > 0
-      // ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
-      // : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
-    addLog(line);
-  }
+  //  if (changeAmount) {
+  //   const line = changeAmount > 0
+  //     // ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
+  //     // : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
+  //   addLog(line);
+  // }
 });
 
       ch.subscribe("card-draw-tick", (msg) => {
@@ -553,7 +553,7 @@ if (targetId) {
           });
         }
 
-        addLog(`🃏 ${shortPlayerName} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
+        // addLog(`🃏 ${shortPlayerName} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
       });
 
       // 株価操作イベント
