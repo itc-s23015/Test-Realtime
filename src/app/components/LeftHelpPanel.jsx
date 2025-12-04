@@ -66,9 +66,9 @@ export default function LeftHelpPanel({ roomId }) {
           <div className={styles.block}>
             <div className={styles.heading}>クイックヘルプ</div>
             <ul className={styles.list}>
-              <li>株価は７秒ごとに自動更新（ホストが配信）</li>
-              <li>右の「ユーザー一覧」でターゲットを選んでから攻撃カードを使用</li>
-              <li>ATBが不足するとカードは使用不可（必要ATBはカードごと）</li>
+              <li>株価は10秒ごとに自動更新</li>
+              <li>ターゲットを選んでから攻撃カードを使用</li>
+              <li>ゲージが不足するとカードは使用不可（必要ATBはカードごと）</li>
               <li>終了時、所持金 +（保有株 × 終値）がスコア</li>
             </ul>
           </div>
@@ -76,7 +76,6 @@ export default function LeftHelpPanel({ roomId }) {
           <div className={styles.block}>
             <div className={styles.heading}>操作のコツ</div>
             <ul className={styles.list}>
-              <li>相手がガード中は攻撃系が無効化される場合あり</li>
               <li>所持株が多い相手に削減カードが有効</li>
               <li>ATBを温存して、価格急変時に一気に行動するのも手</li>
             </ul>

@@ -922,11 +922,9 @@ return (
         selectedTarget={selectedTarget}
         onSelect={handleTargetSelect}
       />
-      </div>
-
-      {/* 左下：チャート */}
       <div className={styles.chartWrapper}>
         <StockChart stockData={stockData} />
+      </div>
       </div>
     </div>
 
