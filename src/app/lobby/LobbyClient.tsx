@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Ably from "ably";
-// import { connection } from "next/server";
 import { usePathname } from "next/navigation";
+import LobbyToast from "../components/LobbyToast";
 
 type Member = { 
   id: string;
-  //新規追加 
   connectionId: string; 
   name: string; 
   ready: boolean 
@@ -58,13 +57,12 @@ export default function LobbyClient({ room }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [displayName, setDisplayName] = useState("");
   const pathname = usePathname();
+  const [nameConflict, setNameConflict] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const startedRef = useRef(false);
   
-// 新規追加
-const [nameConflict, setNameConflict] = useState(false);
-
-//　新規追加
-const [announcement, setAnnouncement] = useState("");
-const startedRef = useRef(false);
+  // トースト通知用のstate
+  const [toastMessage, setToastMessage] = useState("");
 
   const clientId = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -81,6 +79,12 @@ const startedRef = useRef(false);
 
   const closingRef = useRef(false);
   const channelName = useMemo(() => `rooms:${room}`, [room]);
+
+  // トースト表示のヘルパー関数
+  const showToast = (message: string, duration: number = 3000) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(""), duration);
+  };
 
   useEffect(() => {
     const client = new Ably.Realtime.Promise({
@@ -108,7 +112,6 @@ const startedRef = useRef(false);
         }
       });
 
-      //新規追加
       ch.subscribe("announce", (msg) => {
         const text = msg.data?.text;
         if (!text) return;
@@ -121,7 +124,6 @@ const startedRef = useRef(false);
     async function refreshMembers() {
       const ch = chRef.current!;
       const mem = await ch.presence.get();
-//新規追加
       const latest = new Map<string, Ably.Types.PresenceMessage>();
 
       mem.forEach((m) => {
@@ -134,7 +136,6 @@ const startedRef = useRef(false);
       const list: Member[] = Array.from(latest.values())
         .map((m) => ({
           id: m.clientId,
-          //新規追加
           connectionId: m.connectionId,
           name: m.data?.name || m.clientId,
           ready: Boolean(m.data?.ready),
@@ -142,19 +143,15 @@ const startedRef = useRef(false);
         .sort((a, b) => a.id.localeCompare(b.id));
       setMembers(list);
 
-      // ★ displayName を参照せず、関数型 setState で同期（依存から外せる）
       const me = list.find((m) => m.id === clientId);
       if (me && me.name) {
         setDisplayName((prev) => (prev === me.name ? prev : me.name));
       }
-      //  新規追加 //
-      // const sameNameCount = list.filter((m) => m.name === me?.name).length
 
-      // 新規追加 //
       const myName = me?.name || "";
       const conflict = list.some((m) => m.id !== clientId && m.name === myName);
       setNameConflict(conflict);
-  } 
+    } 
     
     return () => {
       if (closingRef.current) return;
@@ -166,15 +163,13 @@ const startedRef = useRef(false);
         try { await clientRef.current?.close(); } catch {}
       })();
     };
-    // ★ 依存から displayName を外した
-    }, [channelName, clientId, room, router]);
+  }, [channelName, clientId, room, router]);
 
   const me = members.find((m) => m.id === clientId);
   const idsSorted = useMemo(() => members.map((m) => m.id).sort(), [members]);
   const isHost = idsSorted[0] === clientId;
   const allReady = members.length >= 2 && members.every((m) => m.ready);
 
-  //useeffect変更
   useEffect(() => {
     if (!isHost) return;
     if (members.length < 2) return;
@@ -183,7 +178,6 @@ const startedRef = useRef(false);
     startedRef.current = true;
 
     (async () => {
-      //アナウンス
       await chRef.current?.publish("announce", {
         text: "対戦を開始します",
         ts: Date.now(),
@@ -199,18 +193,14 @@ const startedRef = useRef(false);
     })();
   }, [isHost, allReady, members.length, clientId]);
 
-  //新規追加
   useEffect(() => {
     if (!allReady) startedRef.current = false;
   }, [allReady]);
 
-    
-
   const toggleReady = async () => {
-    // 新規追加 //
     if (nameConflict) {
       if (pathname.startsWith("/lobby")) {
-        alert("名前が重複しています。変更しないと準備完了にできません");
+        showToast("❌ 名前が重複しています。変更しないと準備完了にできません");
       }
       return;
     }
@@ -222,29 +212,35 @@ const startedRef = useRef(false);
     const ch = chRef.current!;
     const next = !me?.ready;
     await ch.presence.update({ name: displayName || clientId, ready: next });
+    
+    if (next) {
+      showToast("✅ 準備完了しました");
+    } else {
+      showToast("準備を解除しました");
+    }
   };
 
   const updateMyName = async () => {
     const name = (displayName || "").trim();
     if (!name) {
-      alert("名前を入力してください");
+      showToast("❌ 名前を入力してください");
       return;
     }
 
-    //修正・追加
     const conflict = members
-    .filter((m) => m.id !== clientId)
-    .some((m) => m.name === name);
+      .filter((m) => m.id !== clientId)
+      .some((m) => m.name === name);
     setNameConflict(conflict)
     if (conflict) {
-      alert("この名前は使用されています");
+      showToast("❌ この名前は使用されています");
       return;
     }
     
     setNameConflict(false);
 
-    sessionStorage.setItem("playerName",name);
+    sessionStorage.setItem("playerName", name);
     await chRef.current?.presence.update({ name, ready: Boolean(me?.ready) });
+    showToast("✅ 名前を更新しました");
   };
 
   const leaveLobby = async () => {
@@ -270,9 +266,9 @@ const startedRef = useRef(false);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(inviteUrl);
-      alert("招待リンクをコピーしました");
+      showToast("✅ 招待リンクをコピーしました");
     } catch {
-      alert("コピーに失敗しました");
+      showToast("❌ コピーに失敗しました");
     }
   };
 
@@ -285,12 +281,14 @@ const startedRef = useRef(false);
 
   return (
     <main style={{ maxWidth: 800, margin: "32px auto", padding: 16 }}>
+      {/* トースト通知 */}
+      <LobbyToast message={toastMessage} />
+
       <header style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, margin: 0 }}>Lobby — Room: {room}</h1>
         <span style={{ display: "inline-block", background: badge.bg, color: "#ffffffff", padding: "4px 10px", borderRadius: 12 }}>{badge.text}</span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button onClick={copy} style={btn}>招待リンクをコピー</button>
-          {/* ▼ スキップして入室 を削除 */}
           <button onClick={leaveLobby} style={btnDanger}>退室</button>
         </div>
 
@@ -299,7 +297,6 @@ const startedRef = useRef(false);
             ※ この名前は使用されています
           </div>
         )}
-
       </header>
 
       {announcement && (
@@ -314,9 +311,9 @@ const startedRef = useRef(false);
             textAlign: "center",
             border: "1px solid #000",
           }}
-          >
-            {announcement}
-          </div>
+        >
+          {announcement}
+        </div>
       )}
 
       <section style={{ background: "#ffffffff", border: "1px solid #000000ff", borderRadius: 12, padding: 12 }}>
@@ -342,8 +339,6 @@ const startedRef = useRef(false);
           </span>
         </div>
        
-
-       
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: 8 }}>
           {members.map((m) => (
             <li key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#ffffffff", border: "1px solid #5e2191ff", borderRadius: 10, padding: 10 }}>
@@ -357,18 +352,16 @@ const startedRef = useRef(false);
         {/* 操作 */}
         <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
           <button 
-          onClick={toggleReady}
-          disabled={nameConflict} //新規追加
-          style={{
-            ...btn,
-            background: nameConflict ? "#aaa" : btn.background,
-            cursor: nameConflict ? "not-allowed" : "pointer"
-          }
-        }
+            onClick={toggleReady}
+            disabled={nameConflict}
+            style={{
+              ...btn,
+              background: nameConflict ? "#aaa" : btn.background,
+              cursor: nameConflict ? "not-allowed" : "pointer"
+            }}
           >
             {me?.ready ? "準備解除" : "準備OK"}
           </button>
-
         </div>
       </section>
     </main>

@@ -894,7 +894,7 @@ return (
           </div>
         )}
         {/* 🔔 中央トースト通知 */}
-<Toast message={error} />
+    <Toast message={error} />
 
     <div className={styles.timerWrapper}>
       <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
@@ -958,8 +958,6 @@ return (
 </div>
 
   </div>
-      
-
       <SideBar
         side="left"
         open={isLeftSidebarOpen}
