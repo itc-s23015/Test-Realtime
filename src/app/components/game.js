@@ -65,6 +65,11 @@ function strToSeed(str) {
   return Math.abs(hash) >>> 0;
 }
 
+function safeName(id, allPlayers) {
+  return allPlayers[id]?.name || sessionStorage.getItem("playerName") || id.slice(0, 5);
+}
+
+
 // ====== メインコンポーネント ======
 export default function Game() {
   const router = useRouter();
@@ -246,12 +251,12 @@ export default function Game() {
     setRoomNumber(r.toUpperCase());
   }, [router]);
 
-  // 初期手札取得(3枚)
+  // 初期手札取得(4枚)
   useEffect(() => {
     if (!clientId || !roomU) return;
     if (!rngRef.current) {
       rngRef.current = createSeededRng(strToSeed(`${clientId} : ${roomU}`));
-      const init = drawCards(3, { rng: rngRef.current }).map((c) => ({ id: c.id }));
+      const init = drawCards(4, { rng: rngRef.current }).map((c) => ({ id: c.id }));
       setHand(init);
       addLog("🃏 初期手札を取得しました");
     }
@@ -430,7 +435,7 @@ ch.subscribe("stock-update", (msg) => {
         const rng = rngRef.current || Math.random;
         const card = drawRandomCard({ rng });
         setHand((prev) => (prev.length < MAX_HAND_SIZE ? [...prev, { id: card.id }] : prev));
-        addLog("🃏 1枚ドローしました");
+        // addLog("🃏 1枚ドローしました");
       });
 
       ch.subscribe("card-used", (msg) => {
@@ -451,13 +456,11 @@ ch.subscribe("stock-update", (msg) => {
         const playerName = allPlayers[playerId]?.name || playerId;
         const targetName = targetId ? allPlayers[targetId]?.name || targetId : "";
 
-// 最初の5文字だけ取り出す
-const shortPlayerName = playerName.slice(0, 5);
-const shortTargetName = targetName.slice(0, 5);
+const shortPlayerName = safeName(playerId, allPlayers);
+const shortTargetName = targetId ? safeName(targetId, allPlayers) : null;
 
-// ログ出力
 if (targetId) {
-  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用 → ${shortTargetName}`);
+  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
 } else {
   addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
 }
