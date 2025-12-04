@@ -27,6 +27,7 @@ export default function RightUserList({
     <div className={styles.userList}>
       {list.map((p) => {
         const isSel = selectedTarget === p.id;
+        const shortId = p.id.substring(0, 5); // ← ★ 先頭5文字
 
         return (
           <div
@@ -35,7 +36,10 @@ export default function RightUserList({
             onClick={() => handleClick(p.id)}
           >
             <div className={styles.userRow}>
-              <div className={styles.userName}>👤 {p.name}</div>
+              <div className={styles.userName}>
+                👤 {p.name}
+                <span className={styles.userId}>（{shortId}）</span>
+              </div>
 
               <div className={styles.userStats}>
                 保有株: {p.holding ?? 0} 株
