@@ -88,6 +88,7 @@ export default function Game() {
   const [countdownStartAt, setCountdownStartAt] = useState(null);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [usingCardIndex, setUsingCardIndex] = useState(-1);
 
   //新しく追加
   const resultsMapRef = useRef(new Map());
@@ -677,6 +678,10 @@ if (targetId) {
       return;
     }
 
+    // animation
+    setUsingCardIndex(cardIndex);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
     const targetId = selectedTarget || others[0] || null;
     let sim;
 
@@ -710,6 +715,7 @@ if (targetId) {
       if (!sim.success) {
         setError("❌ カードを使えませんでした");
         setTimeout(() => setError(""), 2500);
+        setUsingCardIndex(-1);
         return;
       }
 
@@ -803,6 +809,7 @@ if (targetId) {
       console.error("❌ ローカル適用失敗: ", e);
       setError("カードの処理に失敗しました");
       setTimeout(() => setError(""), 3000);
+      setUsingCardIndex(-1);
       return;
     }
 
@@ -834,6 +841,7 @@ if (targetId) {
       console.error("❌ カード使用送信失敗:", e);
       setError("カード使用の送信に失敗しました");
     }
+    setUsingCardIndex(-1);
   };
 
   const handleTargetSelect = (targetId) => setSelectedTarget(targetId);
@@ -915,7 +923,9 @@ return (
       {/* 左上：ATB + 手札 */}
       <div className={styles.topLeftBox}>
         <ATBBar value={atb} max={100} label="ゲージ" />
-        <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} />
+
+        <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} usingCardIndex={usingCardIndex}/>
+
          <RightUserList
         meId={clientId}
         players={allPlayers}
