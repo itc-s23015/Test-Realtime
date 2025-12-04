@@ -450,13 +450,17 @@ ch.subscribe("stock-update", (msg) => {
         const tail = targetId ? ` → 対象: ${allPlayers[targetId]?.name || targetId}` : "";
         const playerName = allPlayers[playerId]?.name || playerId;
         const targetName = targetId ? allPlayers[targetId]?.name || targetId : "";
-  
-        // ログ出力
-        if (targetId) {
-          addLog(`🃏 ${playerName}${you} が ${cardName} を使用 → ${targetName}`);
-        } else {
-          addLog(`🃏 ${playerName}${you} が ${cardName} を使用`);
-        }
+
+// 最初の5文字だけ取り出す
+const shortPlayerName = playerName.slice(0, 5);
+const shortTargetName = targetName.slice(0, 5);
+
+// ログ出力
+if (targetId) {
+  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用 → ${shortTargetName}`);
+} else {
+  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
+}
 
         // delete card
         if (removeCount && targetId === clientId) {
@@ -549,7 +553,7 @@ ch.subscribe("stock-update", (msg) => {
           });
         }
 
-        addLog(`🃏 ${playerId} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
+        addLog(`🃏 ${shortPlayerName} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
       });
 
       // 株価操作イベント
@@ -578,7 +582,7 @@ ch.subscribe("stock-update", (msg) => {
         });
 
         const direction = changeAmount > 0 ? "上昇" : "下降";
-        addLog(`📊 ${playerId} の操作により株価が ${Math.abs(changeAmount)} 円${direction}`);
+        addLog(`📊 ${shortPlayerName} の操作により株価が ${Math.abs(changeAmount)} 円${direction}`);
       });
 
       ch.subscribe("game-over", (msg) => {
