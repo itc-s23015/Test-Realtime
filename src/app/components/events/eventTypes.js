@@ -5,6 +5,11 @@ export const EVENT_IDS = {
   PRICE_SPIKE: "PRICE_SPIKE",
   PRICE_CRASH: "PRICE_CRASH",
   FORCE_SELL: "FORCE_SELL",
+
+  FORCED_BUY_ALL_IN: "FORCED_BUY_ALL_IN",
+  SET_HOLDING: "SET_HOLDING",
+  ONE_MIN_UP: "ONE_MIN_UP",
+  ONE_MIN_DOWN: "ONE_MIN_DOWN",
 };
 
 // 重み・各種パラメータ
@@ -14,6 +19,18 @@ export const EVENT_DEFS = {
   [EVENT_IDS.PRICE_SPIKE]:{ label: "株の大幅上昇", weight: 1, pctMin: 0.10, pctMax: 0.20 },
   [EVENT_IDS.PRICE_CRASH]:{ label: "株の大幅下落", weight: 1, pctMin: 0.10, pctMax: 0.20 },
   [EVENT_IDS.FORCE_SELL]: { label: "株を強制売却", weight: 1 },
+    // 🔥 新イベント：所持金全額で強制買い
+  [EVENT_IDS.FORCED_BUY_ALL_IN]: {
+    label: "所持金全額で強制買い",
+    weight: 1,
+  },
+
+  // 🔥 新イベント：株数を強制的に10にする
+  [EVENT_IDS.SET_HOLDING]: {
+    label: "保有株を10に固定",
+    weight: 1,
+    amount: 10,
+  },
 };
 
 // 重み付き抽選

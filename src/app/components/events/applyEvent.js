@@ -49,7 +49,39 @@ export function applyEventForSelf(evt, ctx) {
       break;
     default:
       break;
+
+      case EVENT_IDS.FORCED_BUY_ALL_IN: {
+  const price = getCurrentPrice();
+  const maxBuy = Math.floor(moneyRef.current / price);
+
+  const cost = maxBuy * price;
+
+  const newMoney = moneyRef.current - cost;
+  const newHolding = holdingRef.current + maxBuy;
+
+  setMoney(newMoney);
+  setHolding(newHolding);
+  updatePresence(newMoney, newHolding);
+
+  addLog(`💸 強制買い！所持金すべてで ${maxBuy} 株を購入`);
+
+  break;
+}
+
+case EVENT_IDS.SET_HOLDING: {
+  const amount = def.amount ?? 10;
+
+  const newHolding = amount;
+  setHolding(newHolding);
+  updatePresence(moneyRef.current, newHolding);
+
+  addLog(`📦 保有株が強制的に ${amount} 株に変更されました`);
+
+  break;
+}
+
   }
+  
 }
 
 /** 価格イベントをホストが適用して stock-update を即時配信 */
