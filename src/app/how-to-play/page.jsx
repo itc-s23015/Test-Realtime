@@ -89,12 +89,25 @@ export default function HowToPlayPage() {
       株価の上下によって得する人・大ダメージを受ける人が発生します。
     </li>
 
+        <li style={{ marginTop: 12 }}>
+      <strong>🔥 強制買い（FORCED_BUY）</strong><br/>
+      全プレイヤーの所持金がすべて<strong>強制的に株の購入</strong>に使われます。<br/>
+      所持金が多いほど影響が大きく、一気に順位が変動することがあります。
+    </li>
+
+    <li style={{ marginTop: 12 }}>
+      <strong>📦 株数リセット（SET_HOLDING）</strong><br/>
+      全プレイヤーの保有株が<strong>強制的に 10 株に固定</strong>されます。<br/>
+      株を大量に抱えていたプレイヤーが大幅に不利になります。
+    </li>
+
   </ul>
 
   <p className="smallText" style={{ marginTop: 16 }}>
     ※これらのイベントはランダムで発生するため、状況が大きく変動します。
     プレイヤーは柔軟に対応する戦略が求められます。
   </p>
+  
 </div>
     </main>
   );
