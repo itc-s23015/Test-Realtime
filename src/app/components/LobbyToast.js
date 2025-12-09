@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
-import styles from "../styles/Toast.module.css";
+import styles from "../styles/LobbyToast.module.css";
 
-export default function Toast({ message }) {
+export default function LobbyToast({ message }) {
   if (!message) return null;
 
   return (
