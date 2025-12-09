@@ -28,7 +28,7 @@ const INITIAL_HOLDING = 10;
 const AUTO_UPDATE_INTERVAL = 10000; // 10秒ごとの自動更新
 const GAME_DURATION = 240;
 const MAX_HAND_SIZE = 7;
-const CARD_DRAW_INTERVAL = 5000;
+const CARD_DRAW_INTERVAL = 3500;
 
 // ダミー株価データ生成
 function generateStockData(seed = Date.now()) {
