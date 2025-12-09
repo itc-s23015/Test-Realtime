@@ -94,7 +94,8 @@ export default function Game() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [usingCardIndex, setUsingCardIndex] = useState(-1);
-
+  const [messages, setMessages] = useState([]);   // ←これを必ず追加
+  const [chatInput, setChatInput] = useState(""); // ←入力欄
   //新しく追加
   const resultsMapRef = useRef(new Map());
 
@@ -112,6 +113,29 @@ export default function Game() {
   const isGameOverRef = useRef(false);
   const isHostRef = useRef(false);
   const stockDataRef = useRef(stockData);
+
+useEffect(() => {
+  if (!chRef.current) return;
+
+  const unsubscribe = chRef.current.subscribe("chat-message", (msg) => {
+    setMessages((prev) => [...prev, msg.data]);
+  });
+
+  return () => unsubscribe();
+}, [chRef.current]);
+
+const sendChat = (text) => {
+  if (!text.trim()) return;
+  if (!chRef.current) return;
+
+  chRef.current.publish("chat-message", {
+    id: clientId,
+    name: displayName,
+    text,
+    ts: Date.now(),
+  });
+};
+
   
   useEffect(() => { stockDataRef.current = stockData; }, [stockData]);
 
@@ -417,6 +441,8 @@ export default function Game() {
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
       });
+
+
 
 ch.subscribe("stock-update", (msg) => {
   const { stockData: next, changeAmount, isAuto } = msg.data || {};
@@ -964,7 +990,11 @@ return (
         onToggle={() => setIsLeftSidebarOpen((v) => !v)}
         title="ヘルプ"
       >
-      <LeftHelpPanel roomId={roomU} />
+      <LeftHelpPanel
+  roomId={roomU}
+  messages={messages}
+  sendChat={sendChat}
+/>
 
       </SideBar>
 

@@ -4,10 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import styles from "../styles/LeftHelpPanel.module.css";
 import { CARD_DEFINITIONS, RARITY } from "./cardDefinitions";
 
-export default function LeftHelpPanel({ roomId }) {
+export default function LeftHelpPanel({  roomId, messages, sendChat  }) {
   const [tab, setTab] = useState("rules"); // 'rules' | 'cards' | 'memo'
   const [search, setSearch] = useState("");
   const [memo, setMemo] = useState("");
+  const [chatInput, setChatInput] = useState("");
   const memoKey = useMemo(() => `memo:${roomId || "default"}`, [roomId]);
 
   // ルーム別メモの永続化
@@ -56,7 +57,7 @@ export default function LeftHelpPanel({ roomId }) {
           カード図鑑
         </button>
         <button className={`${styles.tab} ${tab === "memo" ? styles.active : ""}`} onClick={() => setTab("memo")}>
-          メモ
+          チャット
         </button>
       </div>
 
@@ -125,21 +126,51 @@ export default function LeftHelpPanel({ roomId }) {
       )}
 
       {/* メモ */}
-      {tab === "memo" && (
-        <div className={styles.section}>
-          <textarea
-            className={styles.textarea}
-            placeholder="対戦メモや作戦を書ける）"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            onBlur={saveMemo}
-            rows={10}
-          />
-          <div className={styles.memoTools}>
-            <button className={styles.btnDanger} onClick={clearMemo}>クリア</button>
-          </div>
+{tab === "memo" && (
+  <div className={styles.section}>
+
+    {/* ====== チャット表示 ====== */}
+    <div className={styles.chatBox}>
+      {messages.map((m, i) => (
+        <div key={i} className={styles.chatRow}>
+          <span className={styles.chatName} style={{ color: colorFromId(m.id) }}>
+            {m.name}
+          </span>
+          <span className={styles.chatText}>{m.text}</span>
         </div>
-      )}
+      ))}
+    </div>
+
+<div className={styles.chatInputRow}>
+  <input
+    type="text"
+    className={styles.chatInput}
+    placeholder="メッセージを入力..."
+    value={chatInput}
+    onChange={(e) => setChatInput(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") {
+        e.preventDefault(); // ← 重要！！
+        sendChat(chatInput);
+        setChatInput("");
+      }
+    }}
+  />
+
+  <button
+    className={styles.chatSendBtn}
+    onClick={() => {
+      sendChat(chatInput);
+      setChatInput("");
+    }}
+  >
+    送信
+  </button>
+</div>
+
+  </div>
+)}
+
     </div>
   );
 }
@@ -158,4 +189,14 @@ function rarityClass(r) {
   // CSS Modules の動的参照（無ければ N を既定に）
   // badgeRarityN / badgeRarityR / badgeRaritySR を CSS 側で定義
   return styles[`badgeRarity${code}`] || styles.badgeRarityN;
+}
+
+/* ===== ID → カラー生成 ===== */
+function colorFromId(id) {
+  if (!id) return "#999";
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 360;
+  }
+  return `hsl(${hash}, 65%, 55%)`;
 }
