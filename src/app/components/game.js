@@ -91,8 +91,8 @@ export default function Game() {
   const [gameStartAt, setGameStartAt] = useState(null);
   const [showStartCD, setShowStartCD] = useState(false);
   const [countdownStartAt, setCountdownStartAt] = useState(null);
-  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
-  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [usingCardIndex, setUsingCardIndex] = useState(-1);
   const [messages, setMessages] = useState([]);   // ←これを必ず追加
   const [chatInput, setChatInput] = useState(""); // ←入力欄
@@ -934,7 +934,9 @@ return (
             seconds={cdSeconds}
             onFinish={() => {
               setShowStartCD(false);
-            
+                // スタート時にサイドバーを閉じる
+              setIsLeftSidebarOpen(false);
+              setIsRightSidebarOpen(false);
             if (!gameStartAt) {
                 const now = Date.now();
                 setGameStartAt(now);
