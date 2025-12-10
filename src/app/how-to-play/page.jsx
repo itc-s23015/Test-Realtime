@@ -4,6 +4,7 @@ import "../styles/SharedPage.css";
 
 export default function HowToPlayPage() {
   return (
+<div className="homeBackground">{/* ← 背景をここに適用 */}
     <main className="pageContainer">
 <div className="headerRow">
   <h1 className="pageTitle">遊び方 / How To Play</h1>
@@ -18,7 +19,7 @@ export default function HowToPlayPage() {
       </div>
       <div className="box">
         <h2 className="sectionTitle">🎯 ゲームの目的</h2>
-        <p className="text">４分間で最も総資産を増やしたプレイヤーが勝利します。</p>
+        <p className="text">5分間で最も総資産を増やしたプレイヤーが勝利します。</p>
       </div>
 
       <div className="box">
@@ -27,7 +28,7 @@ export default function HowToPlayPage() {
           <li>株価チャートはリアルタイムで変動します。</li>
           <li>カードを使用して相手を妨害したり自分を強化できます。</li>
           <li>行動ゲージを消費してカードが使えます。</li>
-          <li>最大4人のリアルタイム対戦です。</li>
+          <li>リアルタイム対戦です。</li>
         </ul>
       </div>
 
@@ -103,5 +104,6 @@ export default function HowToPlayPage() {
   
 </div>
     </main>
+    </div>
   );
 }

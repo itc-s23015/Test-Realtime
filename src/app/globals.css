@@ -125,3 +125,20 @@ body {
 
   --text:#f3f4f6;
 }
+
+.homeBackground {
+  width: 100%;
+  min-height: 100vh;
+
+  background-image: url("/stockfield_bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  /* スクロールしても固定したい場合 */
+  background-attachment: fixed;
+
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}

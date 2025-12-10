@@ -64,27 +64,32 @@
   line-height: 1.5;
 }
 
-/* Grid（CardList） */
-.grid {
+/* CardList専用グリッド：PCは4列固定 */
+.cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr)); /* ← 4列固定 */
   gap: 20px;
 }
 
-@media (max-width: 600px) {
-  .pageContainer {
-    padding: 12px;
-  }
-  .pageTitle {
-    font-size: 24px;
-  }
-  .sectionTitle {
-    font-size: 18px;
-  }
-  .grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+/* 画面が狭くなったら段階的に列を減らす */
+@media (max-width: 1000px) {
+  .cardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+@media (max-width: 750px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .cardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 /* タイトル + ボタン を横並びに */
 .headerRow {
@@ -154,3 +159,4 @@
   margin-top: 8px;
   line-height: 1.5;
 }
+

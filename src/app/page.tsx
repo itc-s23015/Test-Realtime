@@ -1,10 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import Logo from "../app/components/Logo";
-import ThemeToggle from "./components/ThemeToggle";
-
+import { useEffect, useState, type CSSProperties } from "react";
+// import Logo from "../app/components/Logo";
+// import ThemeToggle from "./components/ThemeToggle";
 
 export default function HomePage() {
   const router = useRouter();
@@ -31,71 +30,131 @@ export default function HomePage() {
     if (!n) return alert("プレイヤー名を入力してください");
     if (!r) return alert("ルームIDを入力してください");
     sessionStorage.setItem("playerName", n);
-    router.push(`/lobby?room=${encodeURIComponent(r)}`); // ← ロビーへ
+    router.push(`/lobby?room=${encodeURIComponent(r)}`);
   };
 
   return (
-    
-    <main className="pageContainer"style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
+  <div className="homeBackground">{/* ← 背景をここに適用 */}
+    <main style={pageWrap}>
+      <div style={card}>
+        {/* 必要ならここにロゴ等 */}
+        {/* <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", gap:12}}>
+          <Logo />
+          <ThemeToggle />
+        </div> */}
 
-  <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-    <ThemeToggle />
-  </div>
-          <header style={{ display: "flex", alignItems: "center", gap: 12, padding: 12 }}>
-      <Logo variant="full" size={28} />
-      {/* ダーク背景なら <Logo variant="full" size={28} dark /> */}
-    </header>
-      <h1 style={{ fontSize: 28, marginBottom: 12 }}>Stock Field — ホーム</h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>
-        プレイヤー名を入力して、ルームを作成するか既存のルームに参加してください。
-      </p>
+        <h1 style={title}>StockField</h1>
+        <p style={subtitle}>プレイヤー名を入力して、ルームを作成 or 参加してください。</p>
 
-      <label style={{ display: "block", fontWeight: 600 }}>プレイヤー名</label>
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="あなたの名前"
-        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #ddd", marginTop: 6, marginBottom: 16 }}
-         />
+        <div style={{ display: "grid", gap: 16, marginTop: 18 }}>
+          <div>
+            <label style={label}>プレイヤー名</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="あなたの名前"
+              style={input}
+            />
+          </div>
 
-      <label style={{ display: "block", fontWeight: 600 }}>ルームID</label>
-      <input
-        value={roomId}
-        onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-        placeholder="ABC123"
-        style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1px solid #ddd", marginTop: 6, marginBottom: 16, letterSpacing: 1, textTransform: "uppercase" }}
-      />
+          <div>
+            <label style={label}>ルームID（参加する場合）</label>
+            <input
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+              placeholder="ABC123"
+              style={input}
+            />
+          </div>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <button onClick={goCreate} style={btnPrimary}>ルーム作成へ</button>
-        <button onClick={joinRoom} style={btnGhost}>ルームに参加</button>
+          {/* メインボタン */}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button onClick={goCreate} style={btnPrimary}>ルーム作成へ</button>
+            <button onClick={joinRoom} style={btnGhost}>ルームに参加</button>
+          </div>
+
+          {/* 下のメニュー */}
+          <div style={{ marginTop: 8, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button onClick={() => router.push("/how-to-play")} style={btnGhost}>
+              遊び方 / How to Play
+            </button>
+            <button onClick={() => router.push("/card-list")} style={btnGhost}>
+              カード図鑑 / Card List
+            </button>
+          </div>
+        </div>
       </div>
-      <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
-  <button onClick={() => router.push("/how-to-play")} style={btnGhost}>
-    遊び方 / How to Play
-  </button>
-  <button onClick={() => router.push("/card-list")} style={btnGhost}>
-    カード図鑑 / Card List
-  </button>
-</div>
-
     </main>
+  </div>
   );
 }
 
-const btnPrimary: React.CSSProperties = {
-  padding: "10px 16px",
-  borderRadius: 10,
-  border: "1px solid #111",
-  background: "#111",
-  color: "#fff",
-  cursor: "pointer",
+/** ===== CreateRoomPage と同じ配色 ===== */
+const pageWrap: CSSProperties = {
+  maxWidth: 720,
+  margin: "40px auto",
+  padding: 16,
 };
 
-const btnGhost: React.CSSProperties = {
+const card: CSSProperties = {
+  padding: 20,
+  borderRadius: 18,
+  background: "rgba(0,0,0,0.35)",
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(10px)",
+  WebkitBackdropFilter: "blur(10px)",
+};
+
+const title: CSSProperties = {
+  fontSize: 30,
+  marginBottom: 8,
+  color: "#fff",
+  fontWeight: 900,
+  letterSpacing: 0.5,
+};
+
+const subtitle: CSSProperties = {
+  color: "rgba(255,255,255,0.75)",
+  marginBottom: 12,
+};
+
+const label: CSSProperties = {
+  display: "block",
+  fontWeight: 700,
+  color: "rgba(255,255,255,0.9)",
+};
+
+const input: CSSProperties = {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.22)",
+  marginTop: 8,
+  background: "rgba(255,255,255,0.06)",
+  color: "#fff",
+  outline: "none",
+};
+
+const btnBase: CSSProperties = {
   padding: "10px 16px",
-  borderRadius: 10,
-  border: "1px solid #ccc",
-  background: "#fff",
+  borderRadius: 12,
   cursor: "pointer",
+  backgroundColor: "transparent",
+  color: "#fff",
+  border: "1px solid rgba(255,255,255,0.25)",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
+};
+
+const btnPrimary: CSSProperties = {
+  ...btnBase,
+  border: "1px solid rgba(255, 215, 0, 0.7)",
+  color: "#FFD54A",
+  fontWeight: 800,
+};
+
+const btnGhost: CSSProperties = {
+  ...btnBase,
+  color: "rgba(255,255,255,0.92)",
 };

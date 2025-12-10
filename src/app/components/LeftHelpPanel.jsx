@@ -69,7 +69,7 @@ export default function LeftHelpPanel({  roomId, messages, sendChat  }) {
             <ul className={styles.list}>
               <li>株価は10秒ごとに自動更新</li>
               <li>ターゲットを選んでから攻撃カードを使用</li>
-              <li>ゲージが不足するとカードは使用不可（必要ATBはカードごと）</li>
+              <li>ゲージが不足するとカードは使用不可（必要ゲージはカードごと）</li>
               <li>終了時、所持金 +（保有株 × 終値）がスコア</li>
             </ul>
           </div>
@@ -78,7 +78,7 @@ export default function LeftHelpPanel({  roomId, messages, sendChat  }) {
             <div className={styles.heading}>操作のコツ</div>
             <ul className={styles.list}>
               <li>所持株が多い相手に削減カードが有効</li>
-              <li>ATBを温存して、価格急変時に一気に行動するのも手</li>
+              <li>ゲージを温存して、価格急変時に一気に行動するのも手</li>
             </ul>
           </div>
         </div>

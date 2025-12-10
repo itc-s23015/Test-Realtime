@@ -44,58 +44,105 @@ export default function CreateRoomPage() {
   };
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: 16 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 12 }}>ルーム作成</h1>
-      <p style={{ color: "#666", marginBottom: 24 }}>
-        ルームIDを配って、相手にも同じIDで入ってもらってください。
-      </p>
+        <div className="homeBackground">{/* ← 背景をここに適用 */}
 
-      <div style={{ display: "grid", gap: 16 }}>
-        <div>
-          <label style={{ display: "block", fontWeight: 600 }}>プレイヤー名</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="あなたの名前"
-            style={input}
-          />
-        </div>
+    <main style={pageWrap}>
+      <div style={card}>
+        <h1 style={{ fontSize: 28, marginBottom: 12, color: "#fff" }}>ルーム作成</h1>
+        <p style={{ color: "rgba(255,255,255,0.75)", marginBottom: 24 }}>
+          ルームIDを配って、相手にも同じIDで入ってもらってください。
+        </p>
 
-        <div>
-          <label style={{ display: "block", fontWeight: 600 }}>ルームID</label>
-          <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <label style={{ display: "block", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>
+              プレイヤー名
+            </label>
             <input
-              value={room}
-              onChange={(e) => setRoom(e.target.value.toUpperCase())}
-              placeholder="ABC123"
-              style={{ ...input, flex: 1 }}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="あなたの名前"
+              style={input}
             />
-            <button onClick={copy} style={btnGhost}>コピー</button>
-            <button onClick={refresh} style={btnGhost}>再採番</button>
           </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
-          <button onClick={() => history.back()} style={btnGhost}>戻る</button>
-          <button onClick={goLobby} style={btnPrimary}>このルームのロビーへ</button>
+          <div>
+            <label style={{ display: "block", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>
+              ルームID
+            </label>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                value={room}
+                onChange={(e) => setRoom(e.target.value.toUpperCase())}
+                placeholder="ABC123"
+                style={{ ...input, flex: 1, minWidth: 220 }}
+              />
+              <button onClick={copy} style={btnGhost}>コピー</button>
+              <button onClick={refresh} style={btnGhost}>再採番</button>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+            <button onClick={() => history.back()} style={btnGhost}>戻る</button>
+            <button onClick={goLobby} style={btnPrimary}>このルームのロビーへ</button>
+          </div>
         </div>
       </div>
     </main>
+    </div>
   );
 }
 
+/** ===== 背景 & カード ===== */
+const pageWrap: CSSProperties = {
+  maxWidth: 720,
+  margin: "40px auto",
+  padding: 16,
+};
+
+const card: CSSProperties = {
+  padding: 20,
+  borderRadius: 18,
+  background: "rgba(0,0,0,0.35)",                 // ← 透過背景
+  border: "1px solid rgba(255,255,255,0.18)",
+  boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+  backdropFilter: "blur(10px)",                   // ← ガラス感
+  WebkitBackdropFilter: "blur(10px)",
+};
+
+/** ===== 入力（透過） ===== */
 const input: CSSProperties = {
-  width: "100%", padding: "12px 14px", borderRadius: 10,
-  border: "1px solid #ddd", marginTop: 6,
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.22)",
+  marginTop: 8,
+  background: "rgba(255,255,255,0.06)",           // ← 透過
+  color: "#fff",
+  outline: "none",
+};
+
+/** ===== ボタン（透過） ===== */
+const btnBase: CSSProperties = {
+  padding: "10px 16px",
+  borderRadius: 12,
+  cursor: "pointer",
+  backgroundColor: "transparent",                 // ← 透過
+  color: "#fff",
+  border: "1px solid rgba(255,255,255,0.25)",
+  backdropFilter: "blur(6px)",
+  WebkitBackdropFilter: "blur(6px)",
 };
 
 const btnPrimary: CSSProperties = {
-  padding: "10px 16px", borderRadius: 10, border: "1px solid #111",
-  background: "#111", color: "#fff", cursor: "pointer",
+  ...btnBase,
+  border: "1px solid rgba(255, 215, 0, 0.7)",
+  color: "#FFD54A",
+  fontWeight: 800,
 };
 
 const btnGhost: CSSProperties = {
-  padding: "10px 16px", borderRadius: 10, border: "1px solid #ccc",
-  background: "#fff", cursor: "pointer",
+  ...btnBase,
+  color: "rgba(255,255,255,0.92)",
 };
-  
