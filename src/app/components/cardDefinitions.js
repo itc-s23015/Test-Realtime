@@ -53,7 +53,7 @@ export const CARD_DEFINITIONS = {
         // imageSrc: '/image/cards/testCard.png',
         // imageAlt: '小ダメージ攻撃(株)カードの画像',
         rarity: RARITY.NORMAL,
-        atbCost: 30,
+        atbCost: 20,
         cooldownMs: 3000,
     },
     [CARD_TYPES.REDUCE_HOLDINGS_MEDIUM]: {
@@ -66,7 +66,7 @@ export const CARD_DEFINITIONS = {
         hoverColor: '#2563eb',
         effectAmount: -3,
         rarity: RARITY.RARE,
-        atbCost: 50,
+        atbCost: 30,
         cooldownMs: 5000,
     },
     [CARD_TYPES.REDUCE_HOLDINGS_LARGE]: {
@@ -79,7 +79,7 @@ export const CARD_DEFINITIONS = {
         hoverColor: '#dc2626',
         effectAmount: -5,
         rarity: RARITY.SUPERRARE,
-        atbCost: 70,
+        atbCost: 50,
         cooldownMs: 8000,
     },
     [CARD_TYPES.DRAW_TWO]: {
@@ -91,7 +91,7 @@ export const CARD_DEFINITIONS = {
       needsTarget: false,
       cooldownMs: 4000,
       effectAmount: 2,
-      atbCost: 40,
+      atbCost: 30,
     },
   [CARD_TYPES.INCREASE_HOLDINGS_SMALL]: {
         id: CARD_TYPES.INCREASE_HOLDINGS_SMALL,
@@ -105,7 +105,7 @@ export const CARD_DEFINITIONS = {
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.NORMAL,
-        atbCost: 30,
+        atbCost: 20,
         cooldownMs: 3000,
     },
     [CARD_TYPES.INCREASE_HOLDINGS_MEDIUM]: {
@@ -120,7 +120,7 @@ export const CARD_DEFINITIONS = {
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.RARE,
-        atbCost: 50,
+        atbCost: 30,
         cooldownMs: 3000,
     },
     [CARD_TYPES.INCREASE_HOLDINGS_LARGE]: {
@@ -135,7 +135,7 @@ export const CARD_DEFINITIONS = {
         imageSrc: '',
         imageAlt: '',
         rarity: RARITY.SUPERRARE,
-        atbCost: 70,
+        atbCost: 50,
         cooldownMs: 3000,
     },
     [CARD_TYPES.REMOVE_TWO]: {
@@ -146,7 +146,7 @@ export const CARD_DEFINITIONS = {
         rarity: RARITY.RARE,
         needsTarget: true,
         effectAmount: 2,         // 削除枚数
-        atbCost: 45,             // DRAW_TWO より少し重い
+        atbCost: 20,             // DRAW_TWO より少し重い
         cooldownMs: 5000,        // 少し重めでバランス調整
     },
      [CARD_TYPES.INCREASE_MONEY_SMALL]: {
@@ -157,7 +157,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: false,
         effectAmount: 10000,
         rarity: RARITY.NORMAL,
-        atbCost: 25,
+        atbCost: 20,
         cooldownMs: 2000,
     },
     [CARD_TYPES.INCREASE_MONEY_MEDIUM]: {
@@ -168,7 +168,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: false,
         effectAmount: 30000,
         rarity: RARITY.RARE,
-        atbCost: 45,
+        atbCost: 30,
         cooldownMs: 4000,
     },
     [CARD_TYPES.INCREASE_MONEY_LARGE]: {
@@ -179,7 +179,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: false,
         effectAmount: 50000,
         rarity: RARITY.SUPERRARE,
-        atbCost: 65,
+        atbCost: 50,
         cooldownMs: 6000,
     },
         [CARD_TYPES.CHART_RISE]: {
@@ -190,7 +190,7 @@ export const CARD_DEFINITIONS = {
       needsTarget: false,
       effectAmount: 1000,
       rarity: RARITY.RARE,
-      atbCost: 60,
+      atbCost: 50,
       cooldownMs: 7000,
       affectsChart: true,
     },
@@ -202,7 +202,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: true,
         effectAmount: -10000,
         rarity: RARITY.NORMAL,
-        atbCost: 30,
+        atbCost: 20,
         cooldownMs: 3000,
     },
     [CARD_TYPES.REDUCE_MONEY_MEDIUM]: {
@@ -213,7 +213,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: true,
         effectAmount: -30000,
         rarity: RARITY.RARE,
-        atbCost: 50,
+        atbCost: 30,
         cooldownMs: 5000,
     },
     [CARD_TYPES.REDUCE_MONEY_LARGE]: {
@@ -224,7 +224,7 @@ export const CARD_DEFINITIONS = {
         needsTarget: true,
         effectAmount: -50000,
         rarity: RARITY.SUPERRARE,
-        atbCost: 70,
+        atbCost: 50,
         cooldownMs: 8000,
     },
     [CARD_TYPES.CHART_FALL]: {
@@ -235,7 +235,7 @@ export const CARD_DEFINITIONS = {
       needsTarget: false,
       effectAmount: -1000,
       rarity: RARITY.RARE,
-      atbCost: 60,
+      atbCost: 50,
       cooldownMs: 7000,
       affectsChart: true,
     },

@@ -64,13 +64,6 @@ export default function HowToPlayPage() {
       全プレイヤーの<strong>手札がすべて消滅</strong>します。直後はカードが使えないため、
       誰が有利か一気に変わる強力イベントです。
     </li>
-
-    <li style={{ marginTop: 12 }}>
-      <strong>💰 所持金リセット（SET_MONEY）</strong><br/>
-      全プレイヤーの所持金が<strong>一定値（50,000）に固定</strong>されます。  
-      大量のお金を持つプレイヤーほど不利になります。
-    </li>
-
     <li style={{ marginTop: 12 }}>
       <strong>📈 株の大幅上昇（PRICE_SPIKE）</strong><br/>
       市場全体の株価が<strong>+10% 〜 +20%</strong>の範囲で急上昇します。
