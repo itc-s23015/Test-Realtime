@@ -11,15 +11,14 @@ export default function useRandomEvents(params) {
     enabled,              // 有効時のみ動かす（例: gameStartAt 以降）
     chRef,                // Ably channel ref
     isHostRef,            // { current: boolean }
-    // self apply 用
     setHand, setMoney, setHolding,
     moneyRef, holdingRef, handRef,
     updatePresence, addLog,
     getCurrentPrice,
-    // 株価系列操作（ホスト用）
     getStockData, setStockData,
     intervalMs = 1000, // 1秒ごと
      occurrenceProb = 1 / 75, //追加：発生確率（既定 1/75）
+     showEventNotification
   } = params;
 
   const timerRef = useRef(null);
@@ -42,7 +41,7 @@ export default function useRandomEvents(params) {
         setHand, setMoney, setHolding,
         moneyRef, holdingRef,
         updatePresence, addLog,
-        getCurrentPrice,
+        getCurrentPrice, showEventNotification
       });
 
       // 価格イベントはホストだけが系列変更→stock-update 配信
