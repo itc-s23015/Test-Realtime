@@ -20,7 +20,8 @@ import ATBBar from "./ATBBar";
 import useRandomEvents from "./events/useRandomEvents";
 import LeftHelpPanel from "./LeftHelpPanel";
 import Toast from "./Toast";
-
+import useEventNotification from "./events/useEventNotification";
+import EventNotification from "./events/EventNotification";
 
 // ====== 定数 ======
 const INITIAL_MONEY = 100000;
@@ -96,8 +97,9 @@ export default function Game() {
   const [usingCardIndex, setUsingCardIndex] = useState(-1);
   const [messages, setMessages] = useState([]);   // ←これを必ず追加
   const [chatInput, setChatInput] = useState(""); // ←入力欄
-  //新しく追加
   const resultsMapRef = useRef(new Map());
+  const { notification, showNotification, clearNotification } = useEventNotification();
+
 
   // 参照（Ref）
   const clientRef = useRef(null);
@@ -898,6 +900,7 @@ if (targetId) {
     getStockData: () => stockDataRef.current,
     setStockData,
     intervalMs: 1000,
+    showEventNotification: showNotification
   });
   
 return (
@@ -1016,6 +1019,15 @@ return (
   onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
 />
 
+{notification && (
+  <EventNotification
+    message={notification.message}
+    icon={notification.icon}
+    type={notification.type}
+    duration={notification.duration}
+    onClose={clearNotification}
+  />
+)}
     </div>
   );
 }

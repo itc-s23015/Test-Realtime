@@ -7,6 +7,7 @@ export function applyEventForSelf(evt, ctx) {
     moneyRef, holdingRef,
     updatePresence, addLog,
     getCurrentPrice,
+    showEventNotification, // 🆕 通知関数を追加
   } = ctx;
 
   const id = evt?.id;
@@ -15,7 +16,11 @@ export function applyEventForSelf(evt, ctx) {
   switch (id) {
     case EVENT_IDS.CLEAR_HAND: {
       setHand([]);
-      addLog("🧹 イベント: \n手札が全て消去されました");
+      addLog("🧹 イベント: 手札が全て消去されました");
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification("カード全削除！\n手札が消えました", "🧹", "clear", 3000);
+      }
       break;
     }
     case EVENT_IDS.SET_MONEY: {
@@ -23,6 +28,15 @@ export function applyEventForSelf(evt, ctx) {
       setMoney(amount);
       updatePresence(amount, holdingRef.current);
       addLog(`💴 イベント:所持金が ¥${amount.toLocaleString()} に設定されました`);
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification(
+          `所持金リセット！\n¥${amount.toLocaleString()}`,
+          "💴",
+          "money",
+          3000
+        );
+      }
       break;
     }
     case EVENT_IDS.FORCE_SELL: {
@@ -35,6 +49,15 @@ export function applyEventForSelf(evt, ctx) {
         setMoney(newMoney);
         updatePresence(newMoney, 0);
         addLog(`📤 イベント: 全株を強制売却（${holding}株 x ¥${price.toLocaleString()}）`);
+        // 🆕 派手な通知を表示
+        if (showEventNotification) {
+          showEventNotification(
+            `強制売却！\n${holding}株が売却されました`,
+            "📤",
+            "sell",
+            3000
+          );
+        }
       } else {
         addLog("📤 イベント: 強制売却（保有株なし）");
       }
@@ -43,45 +66,76 @@ export function applyEventForSelf(evt, ctx) {
     // 価格系はホストが株価系列更新＆broadcastするのでログのみ
     case EVENT_IDS.PRICE_SPIKE:
       addLog("🚀 イベント: 株価が大幅に上昇しました");
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification(
+          "株価大暴騰！\n今が売り時かも！？",
+          "🚀",
+          "spike",
+          3000
+        );
+      }
       break;
     case EVENT_IDS.PRICE_CRASH:
       addLog("💥 イベント: 株価が大幅に下落しました");
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification(
+          "株価大暴落！\n大ピンチ！",
+          "💥",
+          "crash",
+          3000
+        );
+      }
       break;
+
+    case EVENT_IDS.FORCED_BUY_ALL_IN: {
+      const price = getCurrentPrice();
+      const maxBuy = Math.floor(moneyRef.current / price);
+      const cost = maxBuy * price;
+      const newMoney = moneyRef.current - cost;
+      const newHolding = holdingRef.current + maxBuy;
+
+      setMoney(newMoney);
+      setHolding(newHolding);
+      updatePresence(newMoney, newHolding);
+
+      addLog(`💸 強制買い！所持金すべてで ${maxBuy} 株を購入`);
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification(
+          `強制買い！\n${maxBuy}株を購入`,
+          "💸",
+          "buy",
+          3000
+        );
+      }
+      break;
+    }
+
+    case EVENT_IDS.SET_HOLDING: {
+      const def = EVENT_DEFS[EVENT_IDS.SET_HOLDING];
+      const amount = def.amount ?? 10;
+      const newHolding = amount;
+      setHolding(newHolding);
+      updatePresence(moneyRef.current, newHolding);
+
+      addLog(`📦 保有株が強制的に ${amount} 株に変更されました`);
+      // 🆕 派手な通知を表示
+      if (showEventNotification) {
+        showEventNotification(
+          `保有株変更！\n${amount}株になりました`,
+          "📦",
+          "default",
+          3000
+        );
+      }
+      break;
+    }
+
     default:
       break;
-
-      case EVENT_IDS.FORCED_BUY_ALL_IN: {
-  const price = getCurrentPrice();
-  const maxBuy = Math.floor(moneyRef.current / price);
-
-  const cost = maxBuy * price;
-
-  const newMoney = moneyRef.current - cost;
-  const newHolding = holdingRef.current + maxBuy;
-
-  setMoney(newMoney);
-  setHolding(newHolding);
-  updatePresence(newMoney, newHolding);
-
-  addLog(`💸 強制買い！所持金すべてで ${maxBuy} 株を購入`);
-
-  break;
-}
-
-case EVENT_IDS.SET_HOLDING: {
-  const amount = def.amount ?? 10;
-
-  const newHolding = amount;
-  setHolding(newHolding);
-  updatePresence(moneyRef.current, newHolding);
-
-  addLog(`📦 保有株が強制的に ${amount} 株に変更されました`);
-
-  break;
-}
-
   }
-  
 }
 
 /** 価格イベントをホストが適用して stock-update を即時配信 */
@@ -96,7 +150,7 @@ export async function applyPriceEventAsHost(evt, hostCtx) {
   const pct = (() => {
     const min = def.pctMin ?? 0.1;
     const max = def.pctMax ?? 0.2;
-    return min + Math.random() * (max - min); // 10〜20%
+    return min + Math.random() * (max - min);
   })();
 
   const data = [...(getStockData() ?? [])];
