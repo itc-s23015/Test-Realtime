@@ -1,121 +1,127 @@
+// src/app/components/TradingPanel.js
 "use client";
-
 import React, { useState } from "react";
 import styles from "../styles/TradingPanel.module.css";
 
-const TradingPanel = ({ currentPrice, money, holding, onTrade }) => {
-  const [tradeAmount, setTradeAmount] = useState(1);
+export default function TradingPanel({ currentPrice, money, holding, onTrade }) {
+  const [amount, setAmount] = useState(1);
 
-  // 固定の10上限をなくして、お金 / 保有株数だけで決まるように
-  const maxBuy = currentPrice > 0 ? Math.floor(money / currentPrice) : 0;
-  const maxSell = holding;
-
-  // 入力可能な最大値（買い/売りのどちらか大きい方）
-  const maxAmount = Math.max(maxBuy, maxSell, 1);
-
-  const safeAmount = Math.max(1, Math.min(tradeAmount, maxAmount));
-  const buyAmount = Math.min(safeAmount, maxBuy);
-  const sellAmount = Math.min(safeAmount, maxSell);
-
-  const buyTotal = buyAmount * currentPrice;
-  const sellTotal = sellAmount * currentPrice;
-
-  const canBuy = buyAmount > 0 && money >= buyTotal;
-  const canSell = sellAmount > 0;
-
-  const handleAmountChange = (e) => {
-    const value = parseInt(e.target.value, 100) || 1;
-    setTradeAmount(Math.max(1, Math.min(maxAmount, value)));
-  };
+  // 購入可能な最大株数を計算
+  const maxBuyAmount = Math.floor(money / currentPrice);
+  
+  // 売却可能な最大株数（保有株数）
+  const maxSellAmount = holding;
 
   const handleBuy = () => {
-    if (!canBuy) return;
-    onTrade("buy", buyAmount);
+    if (amount > 0 && amount <= maxBuyAmount) {
+      onTrade("buy", amount);
+    }
   };
 
   const handleSell = () => {
-    if (!canSell) return;
-    onTrade("sell", sellAmount);
+    if (amount > 0 && amount <= maxSellAmount) {
+      onTrade("sell", amount);
+    }
+  };
+
+  const handleMaxBuy = () => {
+    if (maxBuyAmount > 0) {
+      setAmount(maxBuyAmount);
+      onTrade("buy", maxBuyAmount);
+    }
+  };
+
+  const handleMaxSell = () => {
+    if (maxSellAmount > 0) {
+      setAmount(maxSellAmount);
+      onTrade("sell", maxSellAmount);
+    }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h3 className={styles.title}>株取引 💰</h3>
-        <div className={styles.currentPrice}>
-          現在価格: ¥{currentPrice.toLocaleString()}
-        </div>
+    <div className={styles.panel}>
+      <h3 className={styles.title}>📊 取引パネル</h3>
+      
+      <div className={styles.priceInfo}>
+        <span className={styles.label}>現在価格:</span>
+        <span className={styles.price}>¥{currentPrice.toLocaleString()}</span>
       </div>
 
-      {/* 数量入力 */}
-      <div className={styles.amountSection}>
-        <label className={styles.label}>取引数量</label>
-        <div className={styles.amountControls}>
-          <button
-            className={styles.controlButton}
-            onClick={() => setTradeAmount((prev) => Math.max(1, prev - 1))}
-            disabled={safeAmount <= 1}
-          >
-            −
-          </button>
-          <input
-            type="number"
-            min="1"
-            max={maxAmount}
-            value={safeAmount}
-            onChange={handleAmountChange}
-            className={styles.amountInput}
-          />
-          <button
-            className={styles.controlButton}
-            onClick={() =>
-              setTradeAmount((prev) => Math.min(maxAmount, prev + 1))
-            }
-            disabled={safeAmount >= maxAmount}
-          >
-            ＋
-          </button>
-        </div>
-        <div className={styles.quickSelect}>
-          {[1, 3, 5, 10].map((num) => (
-            <button
-              key={num}
-              className={styles.quickButton}
-              onClick={() => setTradeAmount(Math.min(num, maxAmount))}
-              disabled={num > maxAmount}
-            >
-              {num}株
-            </button>
-          ))}
-        </div>
+      <div className={styles.amountControl}>
+        <label className={styles.label}>取引数量:</label>
+        <input
+          type="number"
+          min="1"
+          value={amount}
+          onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
+          className={styles.input}
+        />
       </div>
 
-      {/* 売買ボタン */}
-      <div className={styles.tradeButtonsRow}>
+      <div className={styles.quickButtons}>
+        <button onClick={() => setAmount(1)} className={styles.quickBtn}>
+          1
+        </button>
+        <button onClick={() => setAmount(5)} className={styles.quickBtn}>
+          5
+        </button>
+        <button onClick={() => setAmount(10)} className={styles.quickBtn}>
+          10
+        </button>
+      </div>
+
+      <div className={styles.actions}>
         <button
-          className={`${styles.tradeButton} ${styles.buyButton}`}
           onClick={handleBuy}
-          disabled={!canBuy}
+          disabled={amount > maxBuyAmount || currentPrice <= 0}
+          className={`${styles.actionBtn} ${styles.buyBtn}`}
         >
-          {maxBuy === 0 ? "資金不足" : `${buyAmount}株 買う`}
+          🛒 購入
         </button>
-
         <button
-          className={`${styles.tradeButton} ${styles.sellButton}`}
-          onClick={handleSell}
-          disabled={!canSell}
+          onClick={handleMaxBuy}
+          disabled={maxBuyAmount <= 0 || currentPrice <= 0}
+          className={`${styles.actionBtn} ${styles.maxBuyBtn}`}
+          title={`最大 ${maxBuyAmount} 株購入`}
         >
-          {maxSell === 0 ? "売却可能な株なし" : `${sellAmount}株 売る`}
+          💰 MAX購入
         </button>
       </div>
 
-      {/* 常に表示 */}
-      <div className={styles.limits}>
-        <div className={styles.limitText}>最大購入可能: {maxBuy}株</div>
-        <div className={styles.limitText}>最大売却可能: {maxSell}株</div>
+      <div className={styles.actions}>
+        <button
+          onClick={handleSell}
+          disabled={amount > maxSellAmount || holding <= 0}
+          className={`${styles.actionBtn} ${styles.sellBtn}`}
+        >
+          💰 売却
+        </button>
+        <button
+          onClick={handleMaxSell}
+          disabled={maxSellAmount <= 0}
+          className={`${styles.actionBtn} ${styles.maxSellBtn}`}
+          title={`全保有株 ${maxSellAmount} 株売却`}
+        >
+          📤 MAX売却
+        </button>
+      </div>
+
+      <div className={styles.info}>
+        <div className={styles.infoRow}>
+          <span>購入可能:</span>
+          <span className={styles.infoValue}>{maxBuyAmount} 株</span>
+        </div>
+        <div className={styles.infoRow}>
+          <span>売却可能:</span>
+          <span className={styles.infoValue}>{maxSellAmount} 株</span>
+        </div>
+        <div className={styles.infoRow}>
+          <span>取引額:</span>
+          <span className={styles.infoValue}>
+            ¥{(currentPrice * amount).toLocaleString()}
+          </span>
+        </div>
       </div>
     </div>
   );
-};
-
-export default TradingPanel;
+}
