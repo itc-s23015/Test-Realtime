@@ -42,3 +42,45 @@
   gap: 12px;
   margin-top: 8px;
 }
+
+/*　新規追加 */
+@media (max-width: 900px) {
+
+  .wrap {
+    padding: 12px;
+    margin-top: 16px;
+  }
+
+  .title {
+    font-size: 16px;
+  }
+
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .grid > * {
+    flex: 0 0 calc(50% - 4px);
+    max-width: calc(50% - 4px);
+  }
+}
+
+@media (max-width: 600px) {
+
+  .wrap {
+    padding: 10px;
+    margin-top: 12px;
+  }
+
+  .grid {
+    gap: 6px
+  }
+
+  .grid > * {
+    flex: 0 0 calc(50% - 3px);
+    max-width: calc(50% - 3px);
+  }
+}

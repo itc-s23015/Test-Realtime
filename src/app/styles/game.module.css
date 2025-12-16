@@ -94,3 +94,37 @@
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
 }
+
+/*新規追加　スマホ縦画面*/
+@media (max-width: 900px) {
+
+  .container {
+    height: auto;
+    min-height: 100vh;
+    overflow: auto;
+  }
+
+  .mainGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 8px 12px 16px;
+    overflow: visible;
+  }
+
+  .leftCol,
+  .rightCol {
+    min-width: 0;
+    overflow: visible;
+  }
+
+  .topLeftBox,
+  .tradePanelBox,
+  .bottomRightBox {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .chartWrapper {
+    min-height: 220px;
+  }
+}
