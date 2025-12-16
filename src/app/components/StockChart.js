@@ -71,21 +71,40 @@ const StockChart = ({ stockData }) => {
 
 
         // 株価ライン
-        ctx.strokeStyle = '#3b82f6';
+        // ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 2;
-        ctx.beginPath();
+        // ctx.beginPath();
 
-        stockData.forEach((point, i) => {
-            const x = padding.left + (chartWidth / (stockData.length - 1)) * i;
-            const y = padding.top + chartHeight - ((point.price - minPrice) / priceRange) * chartHeight;
+        for (let i = 1; i < stockData.length; i++) {
+            const prev = stockData[i - 1];
+            const curr = stockData[i];
 
-            if (i === 0) {
-                ctx.moveTo(x, y);
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
-        ctx.stroke();
+            const x1 = padding.left + (chartWidth / (stockData.length - 1)) * (i - 1);
+            const y1 = padding.top + chartHeight - ((prev.price - minPrice) / priceRange) * chartHeight;
+
+            const x2 = padding.left + (chartWidth / (stockData.length - 1)) * i;
+            const y2 = padding.top + chartHeight - ((curr.price - minPrice) / priceRange) * chartHeight;
+
+            const isUp = curr.price >= prev.price;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = isUp ? '#10b981' : '#ef4444'; // 緑 or 赤
+            ctx.stroke();
+        }
+
+        // stockData.forEach((point, i) => {
+        //     const x = padding.left + (chartWidth / (stockData.length - 1)) * i;
+        //     const y = padding.top + chartHeight - ((point.price - minPrice) / priceRange) * chartHeight;
+
+        //     if (i === 0) {
+        //         ctx.moveTo(x, y);
+        //     } else {
+        //         ctx.lineTo(x, y);
+        //     }
+        // });
+        // ctx.stroke();
 
         // グラデーション
         const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight);

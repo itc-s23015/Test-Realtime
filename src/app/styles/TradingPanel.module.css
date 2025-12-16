@@ -1,306 +1,252 @@
-/* =========================================
-   TradingPanel（Light/Darkテーマ完全対応）
-========================================= */
+/* src/app/styles/tradingPanel.module.css */
 
-.container {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
-  color: var(--text);
-  box-shadow: 0 4px 6px var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow: hidden; /* ← スクロール禁止 */
-}
-
-/* ====== header ====== */
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--panel-border);
-  padding-bottom: 12px;
+.panel {
+  background: rgb(0, 0, 0);
+  border-radius: 16px;
+  padding: 1.5rem;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 .title {
-  font-size: 20px;
+  font-size: 1.5rem;
   font-weight: bold;
-  color: var(--text);
-  margin: 0;
-}
-
-.currentPrice {
-  font-size: 18px;
-  font-weight: bold;
-  color: var(--accent);
-}
-
-/* ====== BUY/SELL セレクタ ====== */
-.tradeTypeSelector {
-  display: flex;
-  gap: 12px;
-}
-
-.typeButton {
-  flex: 1;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-
-  border: 2px solid var(--panel-border);
-  background: var(--input-bg);
-  color: var(--text-sub);
-  transition: all 0.2s;
-}
-
-.typeButton:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.typeButtonActive {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  color: var(--accent);
-}
-
-/* ====== 数量入力欄 ====== */
-
-.label {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-sub);
-  margin-bottom: 12px;
-}
-
-.amountControls {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.controlButton {
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  font-weight: bold;
-  border-radius: 8px;
-
-  border: 2px solid var(--panel-border);
-  background: var(--input-bg);
-  color: var(--text);
-
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.controlButton:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-light);
-}
-
-.controlButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.amountInput {
-  flex: 1;
-  padding: 10px;
-  font-size: 18px;
-  font-weight: bold;
+  margin-bottom: 1rem;
   text-align: center;
-
-  border: 2px solid var(--panel-border);
-  border-radius: 8px;
-
-  background: var(--input-bg);
-  color: var(--text);
-  outline: none;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.amountInput:focus {
-  border-color: var(--accent);
-}
-
-/* ====== 数量クイックボタン ====== */
-.quickSelect {
-  display: flex;
-  gap: 8px;
-}
-
-.quickButton {
-  flex: 1;
-  padding: 8px 12px;
-  font-size: 14px;
-
-  border: 1px solid var(--panel-border);
-  border-radius: 6px;
-
-  background: var(--input-bg);
-  color: var(--text-sub);
-
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.quickButton:hover:not(:disabled) {
-  background: var(--accent-light);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.quickButton:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-
-/* ====== 合計情報 ====== */
-.summary {
-  background: var(--bg-secondary);
-  border: 1px solid var(--panel-border);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.summaryRow {
+.priceInfo {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: var(--text-sub);
-}
-.summaryRow:last-child {
-  margin-bottom: 0;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(10px);
 }
 
-.summaryValue {
+.label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.price {
+  font-size: 1.5rem;
   font-weight: bold;
-  font-size: 16px;
-  color: var(--text);
+  color: #ffd700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.insufficient {
-  color: var(--danger);
+.amountControl {
+  margin-bottom: 1rem;
 }
 
-/* ====== 実行ボタン（ライト黒 / ダーク白） ====== */
-.tradeButton {
+.amountControl .label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.input {
   width: 100%;
-  padding: 14px 24px;
-  font-size: 16px;
-  font-weight: bold;
-
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 8px;
-  color: var(--trade-btn-text); /* ← Light:黒 / Dark:白 */
-
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 12px;
-  border: none;
-}
-
-.buyButton {
-  background: var(--success);
-}
-
-.buyButton:hover:not(:disabled) {
-  background: var(--success-bg);
-  box-shadow: 0 4px 8px var(--shadow);
-}
-
-.sellButton {
-  background: var(--danger);
-}
-
-.sellButton:hover:not(:disabled) {
-  background: var(--danger-bg);
-  box-shadow: 0 4px 8px var(--shadow);
-}
-
-.tradeButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ====== 最大数量 ====== */
-.limits {
+  font-size: 1.1rem;
+  font-weight: bold;
   text-align: center;
-  font-size: 13px;
-  color: var(--text-sub);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  transition: all 0.3s ease;
 }
 
-.limitText {
-  padding: 4px 0;
+.input:focus {
+  outline: none;
+  border-color: #ffd700;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
 }
 
-/* 共通のボタンスタイル */
-.tradeButton {
-  flex: 1;
-  padding: 12px 18px;
-  border-radius: 999px;          /* カプセル型 */
-  border: none;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.quickButtons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quickBtn {
+  padding: 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: bold;
+  font-size: 1rem;
   cursor: pointer;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  transition: all 0.2s ease;
+}
+
+.quickBtn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: #ffd700;
+  transform: translateY(-2px);
+}
+
+.quickBtn:active {
   transform: translateY(0);
-  transition:
-    transform 0.08s ease-out,
-    box-shadow 0.08s ease-out,
-    filter 0.12s ease-out,
-    opacity 0.12s ease-out;
-  white-space: nowrap;
 }
 
-/* 買うボタン（通常時） */
-.buyButton {
-  background: linear-gradient(135deg, #1abc9c, #2ecc71);
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
-/* 買うボタン（ホバー時） */
-.buyButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1dd1a1, #2ecc71);
+.actionBtn {
+  padding: 1rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  overflow: hidden;
 }
 
-/* 売るボタン（通常時） */
-.sellButton {
-  background: linear-gradient(135deg, #e74c3c, #e67e22);
+.actionBtn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
 }
 
-/* 売るボタン（ホバー時） */
-.sellButton:hover:not(:disabled) {
-  background: linear-gradient(135deg, #ff6b6b, #ff9f43);
+.actionBtn:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
-/* 共通のホバー挙動（浮く感じだけ） */
-.tradeButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
-}
-
-/* クリック中の押し込み感 */
-.tradeButton:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  filter: brightness(0.97);
-}
-
-/* 無効状態（資金不足 / 売却不可など） */
-.tradeButton:disabled {
-  cursor: not-allowed;
+.actionBtn:disabled {
   opacity: 0.5;
-  box-shadow: none;
-  filter: grayscale(0.3);
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.actionBtn:disabled::before {
+  display: none;
+}
+
+.buyBtn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.buyBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #7e8ff0 0%, #8e5bb8 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.maxBuyBtn {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  font-weight: 900;
+}
+
+.maxBuyBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1aa896 0%, #4aff8f 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.5);
+}
+
+.sellBtn {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+}
+
+.sellBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f3a0fc 0%, #f66a7e 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(240, 147, 251, 0.4);
+}
+
+.maxSellBtn {
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  color: white;
+  font-weight: 900;
+}
+
+.maxSellBtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fb80a7 0%, #ffed5f 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(250, 112, 154, 0.5);
+}
+
+.actionBtn:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.info {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  backdrop-filter: blur(5px);
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.95rem;
+}
+
+.infoRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.infoValue {
+  font-weight: bold;
+  color: #ffd700;
+  font-size: 1.05rem;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .panel {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .price {
+    font-size: 1.25rem;
+  }
+
+  .actions {
+    gap: 0.5rem;
+  }
+
+  .actionBtn {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
 }
