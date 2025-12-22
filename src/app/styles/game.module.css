@@ -94,3 +94,56 @@
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
 }
+
+/* ===========================
+   スマホ横画面（landscape）最適化
+   ※breakpointは好みで調整OK
+=========================== */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .container {
+    height: 100svh; /* スマホのアドレスバー対策 */
+  }
+
+  .header {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .mainGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 34vw); /* 右を縮める */
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .topLeftBox {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .tradePanelBox {
+    padding: 8px; /* 取引パネルの密度を下げる */
+  }
+
+  .bottomRightBox {
+    padding: 8px;
+    /* 横画面は高さが低いので、情報欄がデカいと圧迫する */
+    max-height: 26vh;
+    overflow: auto;
+  }
+}
+
+/* さらに狭い横画面（小さいスマホ等）では2カラム自体をやめて縦積み */
+@media (max-width: 740px) and (orientation: landscape) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .rightCol {
+    max-height: 45vh;   /* 下段が伸びすぎないように */
+  }
+}
