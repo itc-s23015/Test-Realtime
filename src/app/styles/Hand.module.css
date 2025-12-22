@@ -42,3 +42,37 @@
   gap: 12px;
   margin-top: 8px;
 }
+
+/* ===========================
+   スマホ横画面：手札カードを小さくする
+=========================== */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .wrap {
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 12px;
+  }
+
+  .title {
+    font-size: 14px;
+  }
+
+  .meta {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .grid {
+    /* ★ここが本命：180pxを小さくする */
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+  }
+}
+
+/* さらに狭い横画面（小さいスマホなど） */
+@media (max-width: 740px) and (orientation: landscape) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 6px;
+  }
+}

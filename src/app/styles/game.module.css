@@ -147,3 +147,23 @@
     max-height: 45vh;   /* 下段が伸びすぎないように */
   }
 }
+
+/* ===========================
+   スマホ横画面：取引パネルを被せない（通常配置に戻す）
+=========================== */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .rightCol,
+  .tradePanelBox {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  /* 右カラムをちゃんと右に置く（2カラム維持） */
+  .mainGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 34vw);
+  }
+}
