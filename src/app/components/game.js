@@ -31,6 +31,42 @@ const GAME_DURATION = 240;
 const MAX_HAND_SIZE = 7;
 const CARD_DRAW_INTERVAL = 3500;
 
+// ====== スマホ横「中央にボード」表示用 ======
+const BASE_W = 1100; // ボード基準幅（game.module.css の compactBoard と同じにする）
+const BASE_H = 620;  // ボード基準高さ
+
+function useLandscapeScale() {
+  const [info, setInfo] = useState({ compact: false, scale: 1 });
+
+  useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      const isLandscape = w > h;
+      // 「スマホ横っぽい」条件（必要なら調整）
+      const compact = isLandscape && h <= 520;
+
+      if (!compact) {
+        setInfo({ compact: false, scale: 1 });
+        return;
+      }
+
+      const s = Math.min(w / BASE_W, h / BASE_H);
+      const scale = Math.max(0.55, Math.min(1, s)); // 小さくなりすぎ防止
+
+      setInfo({ compact: true, scale });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  return info;
+}
+
+
 // ダミー株価データ生成
 function generateStockData(seed = Date.now()) {
   const data = [];
@@ -74,6 +110,9 @@ function safeName(id, allPlayers) {
 // ====== メインコンポーネント ======
 export default function Game() {
   const router = useRouter();
+
+    // ===== スマホ横「中央ボード」用 =====
+  const { compact, scale } = useLandscapeScale();
 
   // 状態管理
   const [roomNumber, setRoomNumber] = useState(null);
@@ -903,104 +942,85 @@ if (targetId) {
     showEventNotification: showNotification
   });
   
-return (
-<div className={styles.container}>
+  const gameContent = (
+    <div className={`${styles.container} ${compact ? styles.compactBoard : ""}`}>
+      {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
+      <header className={styles.header}>
+        <h1 className={styles.title}>株価ゲーム 📈</h1>
 
-  {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
-  <header className={styles.header}>
-    <h1 className={styles.title}>株価ゲーム 📈</h1>
-    <span className={styles.statusBadge} style={{ backgroundColor: statusBadge.color }}>
-      {statusBadge.text}
-    </span>
-        {error && (
-          <div
-            className={`${styles.errorBar} ${
-              error.startsWith("✅") ? styles.errorBarSuccess : styles.errorBarError
-            }`}
-          >
-            {error.startsWith("✅") ? "" : "⚠️ "}
-            {error}
-          </div>
-        )}
-        {/* 🔔 中央トースト通知 */}
-    <Toast message={error} />
+        <span className={styles.statusBadge} style={{ backgroundColor: statusBadge.color }}>
+          {statusBadge.text}
+        </span>
 
-    <div className={styles.timerWrapper}>
-      <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
-    </div>
-  </header>
+        {/* 🔔 中央トースト通知（errorを出すなら errorBar はどちらか1つでOK） */}
+        <Toast message={error} />
 
-  { /*＝＝＝＝＝＝＝ スタートカウントダウン ＝＝＝＝＝＝＝ */}
-   {showStartCD && countdownStartAt && (
-          <StartCountdown
-            startAt={countdownStartAt}
-            seconds={cdSeconds}
-            onFinish={() => {
-              setShowStartCD(false);
-                // スタート時にサイドバーを閉じる
-              setIsLeftSidebarOpen(false);
-              setIsRightSidebarOpen(false);
+        <div className={styles.timerWrapper}>
+          <GameTimer duration={GAME_DURATION} startAt={gameStartAt} onTimeUp={onTimeUp} />
+        </div>
+      </header>
+
+      {/* ＝＝＝＝＝＝＝ スタートカウントダウン ＝＝＝＝＝＝＝ */}
+      {showStartCD && countdownStartAt && (
+        <StartCountdown
+          startAt={countdownStartAt}
+          seconds={cdSeconds}
+          onFinish={() => {
+            setShowStartCD(false);
+            setIsLeftSidebarOpen(false);
+            setIsRightSidebarOpen(false);
             if (!gameStartAt) {
-                const now = Date.now();
-                setGameStartAt(now);
-              }
-            }}
-          />
-        )}
+              const now = Date.now();
+              setGameStartAt(now);
+            }
+          }}
+        />
+      )}
 
-  {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
-  <div className={styles.mainGrid}>
+      {/* ＝＝＝＝＝＝＝ 中段 2カラム ＝＝＝＝＝＝＝ */}
+      <div className={styles.mainGrid}>
+        {/* 左カラム */}
+        <div className={styles.leftCol}>
+          {/* 左上：固定（ATB+手札+ユーザー一覧） */}
+          <div className={styles.topLeftBox}>
+            <ATBBar value={atb} max={100} label="ゲージ" />
+            <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} usingCardIndex={usingCardIndex} />
+            <RightUserList
+              meId={clientId}
+              players={allPlayers}
+              selectedTarget={selectedTarget}
+              onSelect={handleTargetSelect}
+            />
+          </div>
 
-    {/* 左カラム（上：ATB+手札、下：チャート） */}
-    <div className={styles.leftCol}>
+          {/* 左下：伸縮（チャート） */}
+          <div className={styles.chartWrapper}>
+            <StockChart stockData={stockData} />
+          </div>
+        </div>
 
-      {/* 左上：ATB + 手札 */}
-      <div className={styles.topLeftBox}>
-        <ATBBar value={atb} max={100} label="ゲージ" />
-
-        <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} usingCardIndex={usingCardIndex}/>
-
-         <RightUserList
-        meId={clientId}
-        players={allPlayers}
-        selectedTarget={selectedTarget}
-        onSelect={handleTargetSelect}
-      />
-      <div className={styles.chartWrapper}>
-        <StockChart stockData={stockData} />
+        {/* 右カラム */}
+        <div className={styles.rightCol}>
+          <div className={styles.tradePanelBox}>
+            <TradingPanel
+              currentPrice={currentPrice}
+              money={money}
+              holding={holding}
+              onTrade={handleTrade}
+            />
+            <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
+          </div>
+        </div>
       </div>
-      </div>
-    </div>
 
-  {/* 右カラム（上：取引パネル、下：プレイヤー情報＋ユーザー一覧） */}
-<div className={styles.rightCol}>
-
-  {/* 右上：取引パネル（伸縮） */}
-  <div className={styles.tradePanelBox}>
-    <TradingPanel
-      currentPrice={currentPrice}
-      money={money}
-      holding={holding}
-      onTrade={handleTrade}
-    />
-   <PlayerInfo money={money} holding={holding} roomNumber={roomNumber} />
-  </div>
-
-</div>
-
-  </div>
+      {/* サイドバー（ゲーム画面の外に出したいなら gameContent 外でもOK） */}
       <SideBar
         side="left"
         open={isLeftSidebarOpen}
         onToggle={() => setIsLeftSidebarOpen((v) => !v)}
         title="ヘルプ"
       >
-      <LeftHelpPanel
-  roomId={roomU}
-  messages={messages}
-  sendChat={sendChat}
-/>
-
+        <LeftHelpPanel roomId={roomU} messages={messages} sendChat={sendChat} />
       </SideBar>
 
       <SideBar
@@ -1012,22 +1032,30 @@ return (
         <Log log={logs} />
       </SideBar>
 
-<ResultModal
-  open={isGameOver}
-  results={results}
-  onHome={() => { window.location.href = "/"; }}
-  onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
-/>
+      <ResultModal
+        open={isGameOver}
+        results={results}
+        onHome={() => { window.location.href = "/"; }}
+        onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
+      />
 
-{notification && (
-  <EventNotification
-    message={notification.message}
-    icon={notification.icon}
-    type={notification.type}
-    duration={notification.duration}
-    onClose={clearNotification}
-  />
-)}
+      {notification && (
+        <EventNotification
+          message={notification.message}
+          icon={notification.icon}
+          type={notification.type}
+          duration={notification.duration}
+          onClose={clearNotification}
+        />
+      )}
     </div>
+  );
+
+  return compact ? (
+    <div className={styles.stage} style={{ ["--game-scale"]: scale }}>
+      <div className={styles.scaler}>{gameContent}</div>
+    </div>
+  ) : (
+    gameContent
   );
 }
