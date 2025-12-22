@@ -51,7 +51,7 @@ function useBoardScale(boardRef) {
       const vh = window.innerHeight;
 
       const isLandscape = vw > vh;
-      const compact = isLandscape && vh <= 520; // 必要なら調整
+      const compact = isLandscape && vh <= 820; // 必要なら調整
 
       if (!compact) {
         setState({ compact: false, scale: 1 });
