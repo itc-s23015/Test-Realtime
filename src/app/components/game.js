@@ -7,7 +7,14 @@ import StockChart from "./StockChart";
 import PlayerInfo from "./PlayerInfo";
 import GameTimer from "./GameTimer";
 import TradingPanel from "./TradingPanel";
-import { CARD_TYPES, CARD_DEFINITIONS, executeCardEffect, drawRandomCard, drawCards, createSeededRng } from "./cardDefinitions";
+import {
+  CARD_TYPES,
+  CARD_DEFINITIONS,
+  executeCardEffect,
+  drawRandomCard,
+  drawCards,
+  createSeededRng,
+} from "./cardDefinitions";
 import Hand from "./Hand";
 import SideBar from "./SideBar";
 import Log from "./Log";
@@ -16,7 +23,7 @@ import styles from "../styles/game.module.css";
 import ResultModal from "../game/ResultModal";
 import StartCountdown from "./StartCountdown";
 import useATB from "./atb/useATB";
-import ATBBar from "./ATBBar"; 
+import ATBBar from "./ATBBar";
 import useRandomEvents from "./events/useRandomEvents";
 import LeftHelpPanel from "./LeftHelpPanel";
 import Toast from "./Toast";
@@ -31,41 +38,67 @@ const GAME_DURATION = 240;
 const MAX_HAND_SIZE = 7;
 const CARD_DRAW_INTERVAL = 3500;
 
-// ====== スマホ横「中央にボード」表示用 ======
-const BASE_W = 1100; // ボード基準幅（game.module.css の compactBoard と同じにする）
-const BASE_H = 620;  // ボード基準高さ
-
-function useLandscapeScale() {
-  const [info, setInfo] = useState({ compact: false, scale: 1 });
+/**
+ * スマホ横：ボードの「実サイズ」を測って scale を計算する
+ * → 右端（取引パネル）が切れて消えるのを防ぐ
+ */
+function useBoardScale(boardRef) {
+  const [state, setState] = useState({ compact: false, scale: 1 });
 
   useEffect(() => {
     const update = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
 
-      const isLandscape = w > h;
-      // 「スマホ横っぽい」条件（必要なら調整）
-      const compact = isLandscape && h <= 520;
+      const isLandscape = vw > vh;
+      const compact = isLandscape && vh <= 520; // 必要なら調整
 
       if (!compact) {
-        setInfo({ compact: false, scale: 1 });
+        setState({ compact: false, scale: 1 });
         return;
       }
 
-      const s = Math.min(w / BASE_W, h / BASE_H);
-      const scale = Math.max(0.55, Math.min(1, s)); // 小さくなりすぎ防止
+      const el = boardRef.current;
+      if (!el) {
+        setState({ compact: true, scale: 0.8 });
+        return;
+      }
 
-      setInfo({ compact: true, scale });
+      // ★本来のサイズで測る
+      const bw = el.scrollWidth;
+      const bh = el.scrollHeight;
+
+      const margin = 16;
+      const s = Math.min(
+        (vw - margin * 2) / bw,
+        (vh - margin * 2) / bh,
+        1
+      );
+
+      setState({ compact: true, scale: Math.max(0.45, s) });
     };
 
     update();
+
+    let ro;
+    try {
+      ro = new ResizeObserver(update);
+      if (boardRef.current) ro.observe(boardRef.current);
+    } catch {
+      // ResizeObserverが無い環境向け保険（基本iOS/modernはOK）
+    }
+
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+    return () => {
+      try {
+        ro?.disconnect?.();
+      } catch {}
+      window.removeEventListener("resize", update);
+    };
+  }, [boardRef]);
 
-  return info;
+  return state;
 }
-
 
 // ダミー株価データ生成
 function generateStockData(seed = Date.now()) {
@@ -73,12 +106,12 @@ function generateStockData(seed = Date.now()) {
   let price = 15000;
   const startDate = new Date("2024-01-01");
   let random = seed;
-  
+
   const rnd = () => {
     random = (random * 9301 + 49297) % 233280;
     return random / 233280;
   };
-  
+
   for (let i = 0; i < 180; i++) {
     const date = new Date(startDate);
     date.setDate(date.getDate() + i);
@@ -106,13 +139,13 @@ function safeName(id, allPlayers) {
   return allPlayers[id]?.name || sessionStorage.getItem("playerName") || id.slice(0, 5);
 }
 
-
 // ====== メインコンポーネント ======
 export default function Game() {
   const router = useRouter();
 
-    // ===== スマホ横「中央ボード」用 =====
-  const { compact, scale } = useLandscapeScale();
+  // ===== スマホ横：中央ボード表示用 =====
+  const boardRef = useRef(null);
+  const { compact, scale } = useBoardScale(boardRef);
 
   // 状態管理
   const [roomNumber, setRoomNumber] = useState(null);
@@ -134,11 +167,11 @@ export default function Game() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
   const [usingCardIndex, setUsingCardIndex] = useState(-1);
-  const [messages, setMessages] = useState([]);   // ←これを必ず追加
-  const [chatInput, setChatInput] = useState(""); // ←入力欄
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState(""); // 使うならUIに反映
+
   const resultsMapRef = useRef(new Map());
   const { notification, showNotification, clearNotification } = useEventNotification();
-
 
   // 参照（Ref）
   const clientRef = useRef(null);
@@ -154,32 +187,6 @@ export default function Game() {
   const isGameOverRef = useRef(false);
   const isHostRef = useRef(false);
   const stockDataRef = useRef(stockData);
-
-useEffect(() => {
-  if (!chRef.current) return;
-
-  const unsubscribe = chRef.current.subscribe("chat-message", (msg) => {
-    setMessages((prev) => [...prev, msg.data]);
-  });
-
-  return () => unsubscribe();
-}, [chRef.current]);
-
-const sendChat = (text) => {
-  if (!text.trim()) return;
-  if (!chRef.current) return;
-
-  chRef.current.publish("chat-message", {
-    id: clientId,
-    name: displayName,
-    text,
-    ts: Date.now(),
-  });
-};
-
-  
-  useEffect(() => { stockDataRef.current = stockData; }, [stockData]);
-
 
   // Refの同期
   useEffect(() => { holdingRef.current = holding; }, [holding]);
@@ -257,6 +264,22 @@ const sendChat = (text) => {
     syncIntervalMs: 500,
   });
 
+  // チャット送信
+  const sendChat = useCallback(
+    (text) => {
+      if (!text?.trim()) return;
+      if (!chRef.current) return;
+
+      chRef.current.publish("chat-message", {
+        id: clientId,
+        name: displayName,
+        text,
+        ts: Date.now(),
+      });
+    },
+    [clientId, displayName]
+  );
+
   // 取引機能
   const handleTrade = useCallback(
     async (type, amount) => {
@@ -333,14 +356,12 @@ const sendChat = (text) => {
     if (autoTimerRef.current) return;
 
     autoTimerRef.current = setInterval(async () => {
-      // Refから最新のstockDataを取得
       const currentData = stockDataRef.current;
       if (currentData.length === 0) return;
 
       const last = currentData[currentData.length - 1];
-      const lastPrice = last.price; // カード操作後の価格を基準にする
+      const lastPrice = last.price;
 
-      // ランダムな変動を加える
       const changeAmount = Math.round((Math.random() - 0.5) * 600);
       const newPrice = Math.max(10000, Math.min(20000, lastPrice + changeAmount));
 
@@ -399,15 +420,12 @@ const sendChat = (text) => {
 
       await ch.attach();
 
-      const initialName =
-        (typeof window !== "undefined" && sessionStorage.getItem("playerName")) || clientId;
-
       await ch.presence.enter({
         name: displayName,
         money: INITIAL_MONEY,
         holding: INITIAL_HOLDING,
         atb: 0,
-      })
+      });
 
       addLog("🎮 対戦が開始されました！");
 
@@ -428,121 +446,100 @@ const sendChat = (text) => {
       await refreshPlayers();
       ch.presence.subscribe(["enter", "leave", "update"], refreshPlayers);
 
+      // チャット購読
+      ch.subscribe("chat-message", (msg) => {
+        if (!msg?.data) return;
+        setMessages((prev) => [...prev, msg.data]);
+      });
+
+      // Start countdown
       ch.subscribe("start-countdown", (msg) => {
         const { startAt, seconds = 5 } = msg.data || {};
         if (!Number.isFinite(startAt)) return;
 
-        //新規追加
         setGameStartAt(startAt + seconds * 1000);
-
         setCdSeconds(seconds);
         setCountdownStartAt(startAt);
         setShowStartCD(true);
       });
 
+      // Host判定
       const members = await ch.presence.get();
       const ids = members.map((m) => m.clientId).sort();
       const isHost = ids[0] === clientId;
-      //新規追加
       isHostRef.current = isHost;
 
       if (isHost) {
         setTimeout(async () => {
-        const seconds = 3;
-        const startAt = Date.now() + seconds * 1000;
-        await ch.publish("start-countdown", { startAt, seconds }); //修正
+          const seconds = 3;
+          const startAt = Date.now() + seconds * 1000;
 
-        setCountdownStartAt(startAt);
-        setCdSeconds(seconds);
-        setShowStartCD(true);
-        setGameStartAt(startAt + seconds * 1000);
+          await ch.publish("start-countdown", { startAt, seconds });
 
-        const seed = Date.now();
-        const initialData = generateStockData(seed);
-        setStockData(initialData);
-        await ch.publish("stock-init", {
-          seed,
-          data: initialData,
-          by: clientId,
-        });
-        startAutoUpdate(ch);
+          setCountdownStartAt(startAt);
+          setCdSeconds(seconds);
+          setShowStartCD(true);
+          setGameStartAt(startAt + seconds * 1000);
 
-        if (!drawTimerRef.current) {
-          drawTimerRef.current = setInterval(async () => {
-            try {
-              await ch.publish("card-draw-tick", { at: Date.now() });
-            } catch (e) {
-              console.error("❌ カードドロー通知送信失敗:", e);
-            }
-          }, CARD_DRAW_INTERVAL);
-        }
-      }, 1000);
-    }
+          const seed = Date.now();
+          const initialData = generateStockData(seed);
+          setStockData(initialData);
+          await ch.publish("stock-init", {
+            seed,
+            data: initialData,
+            by: clientId,
+          });
 
+          startAutoUpdate(ch);
+
+          if (!drawTimerRef.current) {
+            drawTimerRef.current = setInterval(async () => {
+              try {
+                await ch.publish("card-draw-tick", { at: Date.now() });
+              } catch (e) {
+                console.error("❌ カードドロー通知送信失敗:", e);
+              }
+            }, CARD_DRAW_INTERVAL);
+          }
+        }, 1000);
+      }
+
+      // Stock init
       ch.subscribe("stock-init", (msg) => {
         setStockData(msg.data.data);
       });
 
+      // Stock update
+      ch.subscribe("stock-update", (msg) => {
+        const { stockData: next } = msg.data || {};
+        if (!next) return;
+        setStockData(next);
+      });
 
-
-ch.subscribe("stock-update", (msg) => {
-  const { stockData: next, changeAmount, isAuto } = msg.data || {};
-  if (!next) return;
-  setStockData(next);
-
-  //  if (changeAmount) {
-  //   const line = changeAmount > 0
-  //     // ? `📈 株価が ${Math.abs(changeAmount)} 円上昇${isAuto ? "（自動）" : "（手動）"}`
-  //     // : `📉 株価が ${Math.abs(changeAmount)} 円下降${isAuto ? "（自動）" : "（手動）"}`;
-  //   addLog(line);
-  // }
-});
-
-      ch.subscribe("card-draw-tick", (msg) => {
+      // Card draw tick
+      ch.subscribe("card-draw-tick", () => {
         if (handRef.current.length >= MAX_HAND_SIZE) return;
         const rng = rngRef.current || Math.random;
         const card = drawRandomCard({ rng });
         setHand((prev) => (prev.length < MAX_HAND_SIZE ? [...prev, { id: card.id }] : prev));
-        // addLog("🃏 1枚ドローしました");
       });
 
+      // Card used
       ch.subscribe("card-used", (msg) => {
-        console.log("📥 card-used受信（全データ）:", JSON.stringify(msg.data));
-
         const { cardId, playerId, targetId, removeCount } = msg.data || {};
-
-        console.log("📥 分解後:", { cardId, playerId, targetId, removeCount });
-
-        if (!cardId || !playerId) {
-          console.log("❌ carrdId または playerIdが不足");
-          return;
-        }
+        if (!cardId || !playerId) return;
 
         const you = playerId === clientId ? "(あなた)" : "";
         const cardName = CARD_DEFINITIONS[cardId]?.name || cardId;
-        const tail = targetId ? ` → 対象: ${allPlayers[targetId]?.name || targetId}` : "";
-        const playerName = allPlayers[playerId]?.name || playerId;
-        const targetName = targetId ? allPlayers[targetId]?.name || targetId : "";
 
-const shortPlayerName = safeName(playerId, allPlayers);
-const shortTargetName = targetId ? safeName(targetId, allPlayers) : null;
+        const shortPlayerName = safeName(playerId, allPlayers);
 
-if (targetId) {
-  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
-} else {
-  addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
-}
+        addLog(`🃏 ${shortPlayerName}${you} が ${cardName} を使用`);
 
-        // delete card
+        // delete card by attack
         if (removeCount && targetId === clientId) {
-          console.log(`🗑️ 手札をランダムに ${removeCount} 枚削除`);
-          console.log(`📋 削除前の手札:`, handRef.current.map(c => CARD_DEFINITIONS[c.id]?.name));
-
           setHand((currentHand) => {
-            console.log(`🗑️ setHand実行 - 現在の手札枚数: ${currentHand.length}`);
-
             if (currentHand.length === 0) {
-              console.log("⚠️ 手札が空です");
               addLog(`🗑️ 手札が空のため削除できませんでした`);
               return currentHand;
             }
@@ -550,32 +547,22 @@ if (targetId) {
             const toRemove = Math.min(removeCount, currentHand.length);
             const newHand = [...currentHand];
 
-            console.log(`🗑️ ${toRemove}枚を削除します`);
-
             for (let i = 0; i < toRemove; i++) {
               if (newHand.length === 0) break;
               const randomIndex = Math.floor(Math.random() * newHand.length);
-              const removed = newHand.splice(randomIndex, 1)[0];
-        console.log(`🗑️ ${i + 1}枚目削除: インデックス${randomIndex} - ${CARD_DEFINITIONS[removed.id]?.name}`);
-      }
-      
-      console.log(`✅ 削除完了: ${currentHand.length}枚 → ${newHand.length}枚`);
-      console.log(`📋 削除後の手札:`, newHand.map(c => CARD_DEFINITIONS[c.id]?.name));
-      
-      addLog(`🗑️ 手札が ${toRemove} 枚削除されました`);
-      
-      return newHand;
-    });
-    
-    setError(`⚔️ ${cardName} の効果を受けました！手札が${removeCount}枚削除されました`);
-    setTimeout(() => setError(""), 3000);
-    
-    console.log("🗑️ 手札削除処理完了、return");
-    return; // ここで処理終了
-  }
+              newHand.splice(randomIndex, 1);
+            }
 
-  console.log("ℹ️ 手札削除の条件に該当せず、通常処理へ");
+            addLog(`🗑️ 手札が ${toRemove} 枚削除されました`);
+            return newHand;
+          });
 
+          setError(`⚔️ ${cardName} の効果を受けました！手札が${removeCount}枚削除されました`);
+          setTimeout(() => setError(""), 3000);
+          return;
+        }
+
+        // 自分が対象ならローカルに適用
         if (targetId === clientId) {
           setAllPlayers((currentPlayers) => {
             const snapshot = {
@@ -593,18 +580,11 @@ if (targetId) {
 
             if (result?.success && result?.needsSync) {
               const updatedPlayer = result.gameState?.players?.[clientId];
+              const newHolding = updatedPlayer?.holding ?? holdingRef.current;
+              const newMoney = updatedPlayer?.money ?? moneyRef.current;
 
-              const newHolding = updatedPlayer.holding ?? holdingRef.current;
-              if (newHolding !== holdingRef.current) {
-                console.log("🔄 保有株更新 (カード効果):", holdingRef.current, "→", newHolding);
-                setHolding(newHolding);
-              }
-
-              const newMoney = updatedPlayer.money ?? moneyRef.current;
-              if (newMoney !== moneyRef.current) {
-                console.log("🔄 資金更新 (カード効果):", moneyRef.current, "→", newMoney);
-                setMoney(newMoney);
-              }
+              if (newHolding !== holdingRef.current) setHolding(newHolding);
+              if (newMoney !== moneyRef.current) setMoney(newMoney);
 
               setTimeout(() => updatePresence(newMoney, newHolding), 50);
 
@@ -620,11 +600,10 @@ if (targetId) {
                 },
               };
             }
+
             return currentPlayers;
           });
         }
-
-        // addLog(`🃏 ${shortPlayerName} が ${CARD_DEFINITIONS[cardId]?.name || cardId} を使用`);
       });
 
       // 株価操作イベント
@@ -632,30 +611,22 @@ if (targetId) {
         const { changeAmount, playerId } = msg.data || {};
         if (!changeAmount) return;
 
-        if(playerId === clientId) {
-          console.log("📡 自分の株価操作イベントはスキップ");
-          return;
-        }
-
-        console.log(`📡 株価操作イベント受信: ${changeAmount}円の変動 by ${playerId}`);
+        if (playerId === clientId) return;
 
         setStockData((prev) => {
           if (prev.length === 0) return prev;
           const newData = [...prev];
           const lastPoint = newData[newData.length - 1];
           const newPrice = Math.max(10000, Math.min(20000, lastPoint.price + changeAmount));
-
-          newData[newData.length - 1] = {
-            ...lastPoint,
-            price: newPrice,
-          };
+          newData[newData.length - 1] = { ...lastPoint, price: newPrice };
           return newData;
         });
 
         const direction = changeAmount > 0 ? "上昇" : "下降";
-        addLog(`📊 ${shortPlayerName} の操作により株価が ${Math.abs(changeAmount)} 円${direction}`);
+        addLog(`📊 株価が ${Math.abs(changeAmount)} 円${direction}（相手のカード効果）`);
       });
 
+      // Game over
       ch.subscribe("game-over", (msg) => {
         const r = msg.data || {};
         if (!r.playerId) return;
@@ -696,14 +667,19 @@ if (targetId) {
       if (navigatingRef.current) setTimeout(cleanup, 300);
       else cleanup();
     };
-  }, [roomU, clientId, startAutoUpdate, updatePresence]);
+  }, [roomU, clientId, displayName, startAutoUpdate, updatePresence]);
 
   const onTimeUp = async () => {
     if (!chRef.current) return;
-    const price = stockData.length ? stockData[stockData.length - 1].price : 0;
+
+    const price = stockDataRef.current.length
+      ? stockDataRef.current[stockDataRef.current.length - 1].price
+      : 0;
+
     const moneyNow = moneyRef.current;
     const holdingNow = holdingRef.current;
     const score = Math.max(0, Math.round(moneyNow + holdingNow * price));
+
     const payload = {
       type: "result",
       playerId: clientId,
@@ -714,6 +690,7 @@ if (targetId) {
       score,
       ts: Date.now(),
     };
+
     try {
       await chRef.current.publish("game-over", payload);
       resultsMapRef.current.set(clientId, payload);
@@ -748,7 +725,6 @@ if (targetId) {
       return;
     }
 
-    // animation
     setUsingCardIndex(cardIndex);
     await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -769,11 +745,7 @@ if (targetId) {
           ...(targetId
             ? {
                 [targetId]: {
-                  ...(allPlayers[targetId] ?? {
-                    name: targetId,
-                    money: 0,
-                    holding: 0,
-                  }),
+                  ...(allPlayers[targetId] ?? { name: targetId, money: 0, holding: 0 }),
                 },
               }
             : {}),
@@ -791,25 +763,15 @@ if (targetId) {
 
       // 株価変動カードの処理
       if (sim.chartChange && sim.chartChange !== 0) {
-        console.log(`📊 株価操作カード発動: ${sim.chartChange}円の変動`);
-
-        // 自分のチャートを更新
         setStockData((prev) => {
           if (prev.length === 0) return prev;
           const newData = [...prev];
           const lastPoint = newData[newData.length - 1];
           const newPrice = Math.max(10000, Math.min(20000, lastPoint.price + sim.chartChange));
-
-          newData[newData.length - 1] = {
-            ...lastPoint,
-            price: newPrice,
-          };
-
-          console.log(`📊 株価更新（自分）: ${lastPoint.price} → ${newPrice}`);
+          newData[newData.length - 1] = { ...lastPoint, price: newPrice };
           return newData;
         });
 
-        // 他のプレイヤーに配信（自分は受信時にスキップする）
         try {
           await chRef.current.publish("chart-manipulation", {
             cardId: card.id,
@@ -817,7 +779,6 @@ if (targetId) {
             playerId: clientId,
             timestamp: Date.now(),
           });
-          console.log("📡 株価操作イベントを配信しました");
         } catch (e) {
           console.error("❌ 株価操作配信失敗:", e);
         }
@@ -832,38 +793,16 @@ if (targetId) {
         const newHolding = playerData.holding;
         const newMoney = playerData.money;
 
-        if (newHolding !== undefined && newHolding !== holdingRef.current) {
-          console.log("🔄 持ち株更新:", holdingRef.current, "→", newHolding);
-          setHolding(newHolding);
-        }
-
-        if (newMoney !== undefined && newMoney !== moneyRef.current) {
-          console.log("🔄 資金更新:", moneyRef.current, "→", newMoney);
-          setMoney(newMoney);
-        }
-
         const moneyChanged = newMoney !== undefined && newMoney !== moneyRef.current;
         const holdingChanged = newHolding !== undefined && newHolding !== holdingRef.current;
+
+        if (holdingChanged) setHolding(newHolding);
+        if (moneyChanged) setMoney(newMoney);
 
         if (moneyChanged || holdingChanged) {
           const finalMoney = newMoney !== undefined ? newMoney : moneyRef.current;
           const finalHolding = newHolding !== undefined ? newHolding : holdingRef.current;
           setTimeout(() => updatePresence(finalMoney, finalHolding), 50);
-        }
-
-        if (holdingChanged || moneyChanged) {
-          setAllPlayers((prev) => ({
-            ...prev,
-            [clientId]: {
-              ...(prev[clientId] ?? {
-                name: clientId,
-                money: moneyRef.current,
-                holding: holdingRef.current,
-              }),
-              money: newMoney !== undefined ? newMoney : moneyRef.current,
-              holding: newHolding !== undefined ? newHolding : holdingRef.current,
-            },
-          }));
         }
       }
 
@@ -883,25 +822,13 @@ if (targetId) {
       return;
     }
 
-    // 自分に対する効果のカードかどうかを判定
+    // 自分に対する効果のカードは相手に送信しない
     const isSelfTargetCard = !cardDef?.needsTarget || targetId === clientId;
 
     try {
-      // 自分に対する効果のカードは相手に送信しない
       if (!isSelfTargetCard) {
-        // await chRef.current.publish("card-used", {
-        const payload = {
-          cardId: card.id,
-          playerId: clientId,
-          targetId,
-          timestamp: Date.now(),
-        };
-
-        if (sim?.removeCount) {
-          payload.removeCount = sim.removeCount;
-        }
-
-        console.log("📡 カード使用イベント送信:", payload)
+        const payload = { cardId: card.id, playerId: clientId, targetId, timestamp: Date.now() };
+        if (sim?.removeCount) payload.removeCount = sim.removeCount;
         await chRef.current.publish("card-used", payload);
       }
 
@@ -910,7 +837,9 @@ if (targetId) {
     } catch (e) {
       console.error("❌ カード使用送信失敗:", e);
       setError("カード使用の送信に失敗しました");
+      setTimeout(() => setError(""), 3000);
     }
+
     setUsingCardIndex(-1);
   };
 
@@ -923,7 +852,7 @@ if (targetId) {
       ? { text: "接続中...", color: "#f59e0b" }
       : { text: "切断", color: "#ef4444" };
 
-  //新規追加　イベント関連
+  // イベント関連
   useRandomEvents({
     enabled: !isGameOver && Boolean(chRef.current) && Boolean(gameStartAt),
     chRef,
@@ -939,11 +868,15 @@ if (targetId) {
     getStockData: () => stockDataRef.current,
     setStockData,
     intervalMs: 1000,
-    showEventNotification: showNotification
+    showEventNotification: showNotification,
   });
-  
+
+  // ===== 画面全体（gameContent） =====
   const gameContent = (
-    <div className={`${styles.container} ${compact ? styles.compactBoard : ""}`}>
+    <div
+      ref={boardRef}
+      className={`${styles.container} ${compact ? styles.compactBoard : ""}`}
+    >
       {/* ＝＝＝＝＝＝＝ ヘッダー ＝＝＝＝＝＝＝ */}
       <header className={styles.header}>
         <h1 className={styles.title}>株価ゲーム 📈</h1>
@@ -952,7 +885,6 @@ if (targetId) {
           {statusBadge.text}
         </span>
 
-        {/* 🔔 中央トースト通知（errorを出すなら errorBar はどちらか1つでOK） */}
         <Toast message={error} />
 
         <div className={styles.timerWrapper}>
@@ -969,10 +901,7 @@ if (targetId) {
             setShowStartCD(false);
             setIsLeftSidebarOpen(false);
             setIsRightSidebarOpen(false);
-            if (!gameStartAt) {
-              const now = Date.now();
-              setGameStartAt(now);
-            }
+            if (!gameStartAt) setGameStartAt(Date.now());
           }}
         />
       )}
@@ -981,10 +910,15 @@ if (targetId) {
       <div className={styles.mainGrid}>
         {/* 左カラム */}
         <div className={styles.leftCol}>
-          {/* 左上：固定（ATB+手札+ユーザー一覧） */}
+          {/* 左上：ATB + 手札 + ユーザー一覧（固定） */}
           <div className={styles.topLeftBox}>
             <ATBBar value={atb} max={100} label="ゲージ" />
-            <Hand hand={hand} onPlay={handlePlayCard} maxHand={7} usingCardIndex={usingCardIndex} />
+            <Hand
+              hand={hand}
+              onPlay={handlePlayCard}
+              maxHand={7}
+              usingCardIndex={usingCardIndex}
+            />
             <RightUserList
               meId={clientId}
               players={allPlayers}
@@ -993,7 +927,7 @@ if (targetId) {
             />
           </div>
 
-          {/* 左下：伸縮（チャート） */}
+          {/* 左下：チャート（伸縮） */}
           <div className={styles.chartWrapper}>
             <StockChart stockData={stockData} />
           </div>
@@ -1013,7 +947,7 @@ if (targetId) {
         </div>
       </div>
 
-      {/* サイドバー（ゲーム画面の外に出したいなら gameContent 外でもOK） */}
+      {/* サイドバー */}
       <SideBar
         side="left"
         open={isLeftSidebarOpen}
@@ -1032,6 +966,7 @@ if (targetId) {
         <Log log={logs} />
       </SideBar>
 
+      {/* 結果 */}
       <ResultModal
         open={isGameOver}
         results={results}
@@ -1039,6 +974,7 @@ if (targetId) {
         onLobby={() => { window.location.href = `/lobby?room=${encodeURIComponent(roomU)}`; }}
       />
 
+      {/* イベント通知 */}
       {notification && (
         <EventNotification
           message={notification.message}
@@ -1051,6 +987,7 @@ if (targetId) {
     </div>
   );
 
+  // ===== 最終 return（スマホ横だけ中央ボード）=====
   return compact ? (
     <div className={styles.stage} style={{ ["--game-scale"]: scale }}>
       <div className={styles.scaler}>{gameContent}</div>
