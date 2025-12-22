@@ -1,13 +1,14 @@
 /* 全体 */
 .container {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  height: 100svh;   /* ← 100vh から変更（iOS対策） */
+  overflow: hidden; /* これは残してOK（次の@mediaで調整） */
   display: flex;
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
 }
+
 
 /* 上段：ヘッダー */
 .header {
@@ -196,4 +197,18 @@
 /* 既存containerが 100vh なので上書き */
 .compactBoard.container {
   height: 620px;
+}
+
+@media (max-width: 1024px) and (orientation: landscape) {
+  /* 画面全体は固定、スクロールは mainGrid に集約 */
+  .container { overflow: hidden; }
+
+  .mainGrid {
+    overflow: auto;                 /* ← ここをスクロール領域にする */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 内側はスクロールさせない（2重スクロールを防ぐ） */
+  .leftCol { overflow: visible; }
+  .tradePanelBox { overflow: visible; }
 }
