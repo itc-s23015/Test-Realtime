@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# TEST-REALTIME
 
-## Getting Started
+## 概要
+**株取引**と**カードゲーム**を組み合わせた**複数人対戦可能なリアルタイム型の対戦ゲーム**
 
-First, run the development server:
+## デモ
+https://test-realtime-nine.vercel.app/
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+現在は利用できません。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 使用技術
+Ably
+Next.js
+git
+VSCode
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 仕様
+**制限時間は３分**
+このゲームには**10秒に一度上昇・下降する形で動く**株のチャートがある
+**カード**を利用して自身や相手の**持ち株を増減**したり、**チャートを操作**したりできる
+**所持金**を使って株を購入したり、持ち株を売却して所持金を増やすことができる
+**ランダムなイベント**（例　株価の高騰　株価の暴落など）
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+##　遊び方
+部屋を作成/参加
 
-## Learn More
+**ホーム画面**
+![ホーム画面](public/image/cards/homeimage.png)
 
-To learn more about Next.js, take a look at the following resources:
+カードを配布
+![手札](public/image/cards/handcard.png)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+株の売買orカードの使用!
+![株の売買ボタン](public/image/cards/chart.png)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+３分後に終了
+**合計の所持金が一番高い人の勝利**
 
-## Deploy on Vercel
+## 注意点
+**スマホ版非対応**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 開発者
+s23005
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+s23009
+
+s23015
