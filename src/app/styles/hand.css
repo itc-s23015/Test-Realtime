@@ -33,3 +33,10 @@
   font-size: 13px;
   color: var(--text-secondary);
 }
+
+@media (max-width: 1024px) and (orientation: landscape) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); /* ←ここがカード幅 */
+    gap: 5px;
+  }
+}

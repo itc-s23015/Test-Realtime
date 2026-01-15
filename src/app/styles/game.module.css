@@ -1,8 +1,12 @@
+/* ===========================
+   game.module.css（統合・修正版）
+=========================== */
+
 /* 全体 */
 .container {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  height: 100svh;            /* iOS対策 */
+  overflow: hidden;          /* スクロールは mainGrid に集約 */
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -36,7 +40,7 @@
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 16px;
   padding: 12px 24px;
-  overflow: hidden;
+  overflow: hidden; /* PCでは内部スクロール設計でもOK */
 }
 
 /* 左カラム（上：ATB+手札、下：チャート） */
@@ -45,7 +49,7 @@
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  overflow: auto;
+  overflow: auto; /* PCでは左だけスクロールでも可 */
 }
 
 /* 左上：ATB+手札（固定高さ） */
@@ -93,4 +97,112 @@
   border-radius: 12px;
   border: 1px solid var(--panel-border);
   background: var(--panel-bg);
+}
+
+/* =========================================================
+   スマホ横：中央に“ボード”表示（外側に背景を出す）
+========================================================= */
+.stage {
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #55b89a; /* 外側背景（好みで変更） */
+}
+
+.scaler {
+  transform: scale(var(--game-scale, 1));
+  transform-origin: center;
+}
+
+/* compact時：固定heightで切らない（←重要） */
+.compactBoard {
+  width: 1100px;             /* 基準幅 */
+  border-radius: 16px;
+  overflow: visible;         /* hidden だと下が切れるのでNG */
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================================================
+   レスポンシブ（スマホ横画面）
+========================================================= */
+@media (max-width: 1024px) and (orientation: landscape) {
+  .container {
+    height: 100svh;
+    overflow: hidden; /* スクロールは mainGrid に集約 */
+  }
+
+  .header {
+    padding: 8px 10px;
+    gap: 10px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  /* 右を縮める */
+  .mainGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 34vw);
+    gap: 8px;
+    padding: 8px 10px;
+
+    overflow: auto;                 /* ★ここをスクロール領域にする */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* iOSはネストスクロールが不安定なので、内側は基本スクロールさせない */
+  .leftCol {
+    overflow: visible;
+  }
+
+  .tradePanelBox {
+    overflow: visible;
+    padding: 8px;
+    min-height: 220px;              /* 取引UIが潰れない最低高さ */
+  }
+
+  .topLeftBox {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  /* チャートが hidden で切れやすいので横画面は見切れ防止 */
+  .chartWrapper {
+    overflow: visible;
+    min-height: 220px;
+  }
+
+  .bottomRightBox {
+    padding: 8px;
+    max-height: 26vh;
+    overflow: auto;
+  }
+
+  /* 被さり対策：もしどこかで position が当たっても通常配置に戻す */
+  .rightCol,
+  .tradePanelBox {
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+    width: auto !important;
+    height: auto !important;
+  }
+}
+
+/* =========================================================
+   さらに狭い横画面：縦積み
+========================================================= */
+@media (max-width: 740px) and (orientation: landscape) {
+  .mainGrid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .rightCol {
+    max-height: none; /* 無理に制限しない（切れ防止） */
+  }
 }
